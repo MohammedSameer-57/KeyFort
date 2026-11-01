@@ -1,0 +1,13 @@
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+rootProject.name = 'keyfort'
+
+include 'keyfort-core'
+include 'keyfort-server'
+include 'keyfort-android'

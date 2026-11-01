@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- KeyFort Brand: Deep Blue / Indigo Material 3 -->
+    <color name="md_theme_primary">#3949AB</color>
+    <color name="md_theme_onPrimary">#FFFFFF</color>
+    <color name="md_theme_primaryContainer">#DEE0FF</color>
+    <color name="md_theme_onPrimaryContainer">#00006E</color>
+    <color name="md_theme_secondary">#5C5D72</color>
+    <color name="md_theme_onSecondary">#FFFFFF</color>
+    <color name="md_theme_secondaryContainer">#E1E0F9</color>
+    <color name="md_theme_onSecondaryContainer">#191A2C</color>
+    <color name="md_theme_tertiary">#78536A</color>
+    <color name="md_theme_onTertiary">#FFFFFF</color>
+    <color name="md_theme_tertiaryContainer">#FFD8EE</color>
+    <color name="md_theme_onTertiaryContainer">#2E1125</color>
+    <color name="md_theme_error">#BA1A1A</color>
+    <color name="md_theme_errorContainer">#FFDAD6</color>
+    <color name="md_theme_onError">#FFFFFF</color>
+    <color name="md_theme_onErrorContainer">#410002</color>
+    <color name="md_theme_background">#FFFBFF</color>
+    <color name="md_theme_onBackground">#1C1B1F</color>
+    <color name="md_theme_surface">#FFFBFF</color>
+    <color name="md_theme_onSurface">#1C1B1F</color>
+    <color name="md_theme_surfaceVariant">#E4E1EC</color>
+    <color name="md_theme_onSurfaceVariant">#46464F</color>
+    <color name="md_theme_outline">#777680</color>
+    <color name="md_theme_inverseOnSurface">#F4EFF4</color>
+    <color name="md_theme_inverseSurface">#313033</color>
+    <color name="md_theme_inversePrimary">#BAC3FF</color>
+    <color name="md_theme_surfaceTint">#3949AB</color>
+
+    <!-- Dark theme -->
+    <color name="md_theme_dark_primary">#BAC3FF</color>
+    <color name="md_theme_dark_onPrimary">#1E2578</color>
+    <color name="md_theme_dark_primaryContainer">#363F8F</color>
+    <color name="md_theme_dark_onPrimaryContainer">#DEE0FF</color>
+    <color name="md_theme_dark_secondary">#C5C4DD</color>
+    <color name="md_theme_dark_onSecondary">#2E2F42</color>
+    <color name="md_theme_dark_secondaryContainer">#444559</color>
+    <color name="md_theme_dark_onSecondaryContainer">#E1E0F9</color>
+    <color name="md_theme_dark_tertiary">#E8B9D5</color>
+    <color name="md_theme_dark_onTertiary">#45253B</color>
+    <color name="md_theme_dark_tertiaryContainer">#5E3B52</color>
+    <color name="md_theme_dark_onTertiaryContainer">#FFD8EE</color>
+    <color name="md_theme_dark_error">#FFB4AB</color>
+    <color name="md_theme_dark_errorContainer">#93000A</color>
+    <color name="md_theme_dark_onError">#690005</color>
+    <color name="md_theme_dark_onErrorContainer">#FFDAD6</color>
+    <color name="md_theme_dark_background">#1C1B1F</color>
+    <color name="md_theme_dark_onBackground">#E6E1E5</color>
+    <color name="md_theme_dark_surface">#1C1B1F</color>
+    <color name="md_theme_dark_onSurface">#E6E1E5</color>
+    <color name="md_theme_dark_surfaceVariant">#46464F</color>
+    <color name="md_theme_dark_onSurfaceVariant">#C7C5D0</color>
+    <color name="md_theme_dark_outline">#91909A</color>
+    <color name="md_theme_dark_inverseOnSurface">#1C1B1F</color>
+    <color name="md_theme_dark_inverseSurface">#E6E1E5</color>
+    <color name="md_theme_dark_inversePrimary">#3949AB</color>
+    <color name="md_theme_dark_surfaceTint">#BAC3FF</color>
+</resources>

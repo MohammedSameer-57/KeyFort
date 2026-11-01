@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">KeyFort</string>
+
+    <!-- Bottom Navigation -->
+    <string name="tab_vaults">Vaults</string>
+    <string name="tab_send">Send</string>
+    <string name="tab_generator">Generator</string>
+    <string name="tab_settings">Settings</string>
+
+    <!-- Unlock / Auth -->
+    <string name="user_id">User ID</string>
+    <string name="device_id">Device ID</string>
+    <string name="device_name">Device Name</string>
+    <string name="master_password">Master Password</string>
+    <string name="verify_code">Verification Code</string>
+    <string name="login">Login</string>
+    <string name="register">Register</string>
+    <string name="use_biometric">Use Biometric</string>
+    <string name="switch_to_register">Don\'t have an account? Register</string>
+    <string name="switch_to_login">Already registered? Login</string>
+    <string name="please_login_first">Please login with password first</string>
+    <string name="enter_password_after_biometric">Enter your master password</string>
+    <string name="biometric_failed">Biometric authentication failed</string>
+    <string name="auth_failed">Authentication failed</string>
+    <string name="registration_failed">Registration failed</string>
+    <string name="registration_success">Account created successfully</string>
+
+    <!-- Entries -->
+    <string name="add_entry">Add Entry</string>
+    <string name="entry_detail">Entry Details</string>
+    <string name="site">Site / URL</string>
+    <string name="username">Username</string>
+    <string name="password">Password</string>
+    <string name="reveal_password">Reveal &amp; Copy Password</string>
+    <string name="toggle_password">Show/Hide password</string>
+    <string name="view_details">View details</string>
+    <string name="edit_entry">Edit Entry</string>
+    <string name="edit">Edit</string>
+    <string name="delete">Delete</string>
+    <string name="entry_deleted">Entry deleted</string>
+    <string name="fill_all_fields">Please fill in all fields</string>
+    <string name="vault_locked">Vault is locked</string>
+
+    <!-- Generator -->
+    <string name="password_length_title">Password Length</string>
+    <string name="password_length_label">Length: %d</string>
+    <string name="password_length_label_default">Length: 20</string>
+    <string name="uppercase">Uppercase (A–Z)</string>
+    <string name="lowercase">Lowercase (a–z)</string>
+    <string name="digits">Digits (0–9)</string>
+    <string name="symbols">Symbols (!@#$…)</string>
+    <string name="generate">Generate</string>
+    <string name="generated_password">Generated Password</string>
+    <string name="copy">Copy</string>
+    <string name="copied_to_clipboard">Copied! Clears in 30s</string>
+    <string name="select_charset">Select at least one character set</string>
+    <string name="generate_first">Generate a password first</string>
+
+    <!-- Settings -->
+    <string name="server_url">Server URL</string>
+    <string name="server_url_saved">Server URL saved</string>
+    <string name="lock_now">Lock Now</string>
+    <string name="revoke_device">Revoke This Device</string>
+    <string name="revoke_device_confirm">This will revoke access for this device and sign you out. Continue?</string>
+    <string name="revoke">Revoke</string>
+    <string name="verify_ledger">Verify Ledger</string>
+    <string name="ledger_verification">Ledger Verification</string>
+    <string name="sign_out">Sign Out</string>
+    <string name="sign_out_confirm">This will clear all local data. Continue?</string>
+
+    <!-- Send -->
+    <string name="send_title">KeyFort Send</string>
+    <string name="send_subtitle">Zero-knowledge ephemeral secret sharing</string>
+    <string name="send_text_hint">Secret text or credential to share…</string>
+    <string name="btn_create_send">Create Encrypted Send</string>
+    <string name="send_result_title">Encrypted Send Payload</string>
+    <string name="copy_send_link">Copy Encrypted Bundle</string>
+    <string name="send_created_toast">Send payload encrypted &amp; copied! Clears in 30s</string>
+    <string name="enter_secret_text">Please enter secret text to share</string>
+
+    <!-- Recovery -->
+    <string name="recovery_kit">Recovery Kit</string>
+    <string name="recovery_kit_desc">Save this emergency private key! If you ever lose your master password, this kit is the only way to recover your vault:</string>
+    <string name="copy_recovery_kit">Copy Recovery Kit</string>
+    <string name="forgot_password">Forgot Password? Use Recovery Kit</string>
+    <string name="recover_vault">Recover Vault</string>
+    <string name="recovery_kit_hint">Paste Recovery Kit (Private Key)</string>
+    <string name="new_master_password">New Master Password</string>
+    <string name="recover_and_unlock">Recover &amp; Unlock</string>
+    <string name="vault_recovered_success">Vault recovered under new master password!</string>
+    <string name="invalid_recovery_kit">Invalid recovery kit or failed recovery</string>
+
+    <!-- Common -->
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="ok">OK</string>
+    <string name="sync">Sync</string>
+    <string name="synced">Synced successfully</string>
+    <string name="error_prefix">Error: </string>
+    <string name="send_coming_soon">Send</string>
+</resources>

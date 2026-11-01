@@ -1,0 +1,31 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: keyfort-server
+
+  datasource:
+    url: jdbc:h2:mem:keyfortdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+
+  h2:
+    console:
+      enabled: false
+
+keyfort:
+  jwt:
+    # 256-bit secure secret for HMAC-SHA256 JWT signing
+    secret: "keyfort-secret-key-for-jwt-signing-must-be-at-least-256-bits-long!!"
+    expiration-ms: 900000 # 15 minutes

@@ -1,0 +1,27 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Java / IDE
+*.class
+*.jar
+*.war
+*.ear
+.idea/
+*.iml
+.project
+.classpath
+.settings/
+*.log
+
+# Android
+keyfort-android/build/
+.cxx/
+local.properties
+*.apk
+*.aab
+
+# OS
+.DS_Store
+Thumbs.db
