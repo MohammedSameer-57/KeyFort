@@ -15,6 +15,9 @@ build/
 .settings/
 *.log
 
+# Never ignore the Gradle wrapper JAR
+!gradle/wrapper/gradle-wrapper.jar
+
 # Android
 keyfort-android/build/
 .cxx/
