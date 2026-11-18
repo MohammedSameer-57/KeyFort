@@ -1,55 +1,72 @@
 @echo off
 setlocal enabledelayedexpansion
-title KeyFort - One-Click Launcher
+title KeyFort - Quick Launcher
 echo ========================================================
-echo            KeyFort Zero-Knowledge Password Manager
-echo                   One-Click Launcher
+echo            KeyFort Zero-Knowledge Platform
+echo                   Universal Launcher
 echo ========================================================
 echo.
 
 cd /d "%~dp0"
 
-set "ADB=C:\Users\Rachit.000\AppData\Local\Android\Sdk\platform-tools\adb.exe"
-set "EMULATOR=C:\Users\Rachit.000\AppData\Local\Android\Sdk\emulator\emulator.exe"
+:: 1. Check if Java is installed
+where java >nul 2>&1
+if %ERRORLEVEL% neq 0 (
+    if "%JAVA_HOME%"=="" (
+        echo [ERROR] Java 17+ is required but not found on your system!
+        echo.
+        echo Please install Java 17 or higher:
+        echo 1. Download OpenJDK 17: https://adoptium.net/temurin/releases/?version=17
+        echo 2. Run the installer (it takes 1 minute).
+        echo.
+        pause
+        exit /b 1
+    )
+)
+echo [OK] Java detected.
 
-:: 1. Check if KeyFort Server is running
-echo [1/3] Checking KeyFort Backend Server (port 8080)...
+:: 2. Find Android ADB and Emulator dynamically
+set "ADB=adb"
+where adb >nul 2>&1
+if %ERRORLEVEL% neq 0 (
+    if exist "%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe" (
+        set "ADB=%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe"
+    )
+)
+
+:: 3. Start KeyFort Backend Server (Spring Boot on port 8080)
+echo.
+echo [1/2] Starting KeyFort Backend Server (port 8080)...
 netstat -ano | findstr :8080 >nul 2>&1
 if %ERRORLEVEL% equ 0 (
-    echo       [OK] Backend server is already running on http://localhost:8080
+    echo       [OK] Server is already running on http://localhost:8080
 ) else (
-    echo       [..] Starting backend server in background...
+    echo       [..] Starting server in background...
     start /min "KeyFort-Server" cmd /c "gradlew.bat :keyfort-server:run"
-    powershell -nop -c "Start-Sleep -Seconds 6"
+    timeout /t 6 /nobreak >nul
     echo       [OK] Backend server started.
 )
 
-:: 2. Check if Android Emulator is running
+:: 4. Android Emulator / Device Check
 echo.
-echo [2/3] Checking Android Emulator...
-"%ADB%" devices | findstr "emulator-5554" >nul 2>&1
+echo [2/2] Checking Android device / emulator...
+"%ADB%" devices 2>nul | findstr "device$" >nul 2>&1
 if %ERRORLEVEL% equ 0 (
-    echo       [OK] Emulator is already running.
+    echo       [OK] Active Android device detected. Launching app...
+    "%ADB%" shell am start -n org.keyfort.android/.ui.UnlockActivity >nul 2>&1
+    echo       [OK] KeyFort app launched on device screen.
 ) else (
-    echo       [..] Starting emulator (medium_phone)...
-    start "" "%EMULATOR%" -avd medium_phone -no-boot-anim
-    echo       [..] Waiting for device to finish booting...
-    "%ADB%" wait-for-device
-    powershell -nop -c "while ((& '%ADB%' shell getprop sys.boot_completed).Trim() -ne '1') { Start-Sleep -Seconds 2 }"
-    echo       [OK] Emulator booted successfully.
+    echo       [INFO] No running Android emulator found.
+    echo       (To run mobile app: open your emulator in Android Studio and run this again).
 )
 
-:: 3. Launch KeyFort App
-echo.
-echo [3/3] Launching KeyFort Android App...
-"%ADB%" shell am start -n org.keyfort.android/.ui.UnlockActivity >nul 2>&1
-echo       [OK] KeyFort is now open on your emulator screen!
 echo.
 echo ========================================================
-echo   KeyFort is LIVE and ready to use!
-echo   - App: Running on your emulator window
-echo   - Backend: http://localhost:8080
-echo   - Ledger Verify: http://localhost:8080/ledger/verify
+echo   KeyFort Backend is LIVE!
+echo   - Backend URL  : http://localhost:8080
+echo   - Audit Ledger : http://localhost:8080/ledger/verify
 echo ========================================================
 echo.
+echo Opening audit ledger in your browser...
+start http://localhost:8080/ledger/verify
 pause
