@@ -9,60 +9,56 @@ echo.
 
 cd /d "%~dp0"
 
-:: 1. Check if Java is installed
+:: 1. Auto-configure Java 17 if JAVA_HOME is missing
+if "%JAVA_HOME%"=="" (
+    if exist "C:\Program Files\Eclipse Adoptium\jdk-17.0.13.11-hotspot" (
+        set "JAVA_HOME=C:\Program Files\Eclipse Adoptium\jdk-17.0.13.11-hotspot"
+        set "PATH=!JAVA_HOME!\bin;!PATH!"
+    ) else if exist "C:\Program Files\Java\jdk-17" (
+        set "JAVA_HOME=C:\Program Files\Java\jdk-17"
+        set "PATH=!JAVA_HOME!\bin;!PATH!"
+    )
+)
+
+:: Verify Java
 where java >nul 2>&1
 if %ERRORLEVEL% neq 0 (
-    if "%JAVA_HOME%"=="" (
-        echo [ERROR] Java 17+ is required but not found on your system!
-        echo.
-        echo Please install Java 17 or higher:
-        echo 1. Download OpenJDK 17: https://adoptium.net/temurin/releases/?version=17
-        echo 2. Run the installer (it takes 1 minute).
-        echo.
-        pause
-        exit /b 1
-    )
+    echo [ERROR] Java 17+ is required but not detected!
+    echo Please install Adoptium OpenJDK 17: https://adoptium.net/
+    echo.
+    pause
+    exit /b 1
 )
-echo [OK] Java detected.
+echo [OK] Java 17 detected.
 
-:: 2. Find Android ADB and Emulator dynamically
-set "ADB=adb"
-where adb >nul 2>&1
+:: 2. Check if Server is already running on port 8080
+netstat -ano | findstr :8080 | findstr LISTENING >nul 2>&1
+if %ERRORLEVEL% equ 0 (
+    echo [OK] Server is already running on http://localhost:8080
+    goto open_browser
+)
+
+:: 3. Start Backend Server in a new window
+echo [..] Starting KeyFort Backend Server...
+start "KeyFort Backend Server (Port 8080)" cmd /k "gradlew.bat :keyfort-server:run"
+
+:: 4. Wait for server to become responsive
+echo [..] Waiting for server to initialize...
+powershell -NoProfile -Command "$ready = $false; for ($i=0; $i -lt 30; $i++) { Start-Sleep -Seconds 1; try { $r = Invoke-RestMethod -Uri 'http://localhost:8080/ledger/verify' -TimeoutSec 1 -ErrorAction Stop; if ($r.valid -eq $true) { $ready = $true; break } } catch {} }; if (-not $ready) { exit 1 }"
+
 if %ERRORLEVEL% neq 0 (
-    if exist "%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe" (
-        set "ADB=%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe"
-    )
-)
-
-:: 3. Start KeyFort Backend Server (Spring Boot on port 8080)
-echo.
-echo [1/2] Starting KeyFort Backend Server (port 8080)...
-netstat -ano | findstr :8080 >nul 2>&1
-if %ERRORLEVEL% equ 0 (
-    echo       [OK] Server is already running on http://localhost:8080
+    echo.
+    echo [!] Server is taking longer than usual to start.
+    echo     Please check the "KeyFort Backend Server" terminal window.
+    echo.
 ) else (
-    echo       [..] Starting server in background...
-    start /min "KeyFort-Server" cmd /c "gradlew.bat :keyfort-server:run"
-    timeout /t 6 /nobreak >nul
-    echo       [OK] Backend server started.
+    echo [OK] KeyFort Backend Server is LIVE!
 )
 
-:: 4. Android Emulator / Device Check
-echo.
-echo [2/2] Checking Android device / emulator...
-"%ADB%" devices 2>nul | findstr "device$" >nul 2>&1
-if %ERRORLEVEL% equ 0 (
-    echo       [OK] Active Android device detected. Launching app...
-    "%ADB%" shell am start -n org.keyfort.android/.ui.UnlockActivity >nul 2>&1
-    echo       [OK] KeyFort app launched on device screen.
-) else (
-    echo       [INFO] No running Android emulator found.
-    echo       (To run mobile app: open your emulator in Android Studio and run this again).
-)
-
+:open_browser
 echo.
 echo ========================================================
-echo   KeyFort Backend is LIVE!
+echo   KeyFort is LIVE and ready!
 echo   - Backend URL  : http://localhost:8080
 echo   - Audit Ledger : http://localhost:8080/ledger/verify
 echo ========================================================
