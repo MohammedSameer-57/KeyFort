@@ -3,20 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KeyFort — Simple, Private Password Manager</title>
+    <title>KeyFort — Anti-Peeking Password Manager</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #0d1117;
-            --surface: #161b22;
-            --surface-hover: #1f242c;
-            --border: #30363d;
-            --primary: #2563eb;
-            --primary-hover: #1d4ed8;
+            --bg: #090d16;
+            --surface: #111827;
+            --surface-hover: #1f2937;
+            --border: #1f293d;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
             --accent: #10b981;
-            --text: #f0f6fc;
-            --muted: #8b949e;
-            --danger: #f85149;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --text: #f8fafc;
+            --muted: #94a3b8;
         }
 
         * {
@@ -34,7 +35,7 @@
             flex-direction: column;
         }
 
-        /* Top Header */
+        /* Header */
         header {
             background: var(--surface);
             border-bottom: 1px solid var(--border);
@@ -51,39 +52,18 @@
         }
 
         .brand-icon {
-            font-size: 22px;
+            font-size: 24px;
         }
 
         .brand h1 {
             font-size: 18px;
             font-weight: 700;
-            letter-spacing: -0.3px;
         }
 
-        .user-controls {
+        .header-actions {
             display: flex;
             align-items: center;
-            gap: 12px;
-        }
-
-        .status-badge {
-            background: rgba(16, 185, 129, 0.1);
-            color: var(--accent);
-            border: 1px solid rgba(16, 185, 129, 0.25);
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .status-dot {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            background: var(--accent);
+            gap: 10px;
         }
 
         .btn {
@@ -101,22 +81,24 @@
             gap: 6px;
         }
 
-        .btn:hover {
-            background: var(--primary-hover);
-        }
+        .btn:hover { background: var(--primary-hover); }
 
         .btn-secondary {
-            background: var(--surface-hover);
+            background: #1e293b;
             color: var(--text);
             border: 1px solid var(--border);
         }
 
-        .btn-secondary:hover {
-            background: #282f3a;
+        .btn-secondary:hover { background: #334155; }
+
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
         }
 
-        /* Unlock Screen */
-        #unlockScreen {
+        /* SCREEN 1: Master Password Login */
+        #screen1 {
             flex: 1;
             display: flex;
             align-items: center;
@@ -124,7 +106,7 @@
             padding: 24px;
         }
 
-        .unlock-card {
+        .login-card {
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 24px;
@@ -132,30 +114,30 @@
             max-width: 420px;
             width: 100%;
             text-align: center;
-            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
         }
 
-        .unlock-icon {
-            font-size: 44px;
+        .login-icon {
+            font-size: 48px;
             margin-bottom: 16px;
         }
 
-        .unlock-card h2 {
+        .login-card h2 {
             font-size: 22px;
             font-weight: 700;
             margin-bottom: 8px;
         }
 
-        .unlock-card p {
+        .login-card p {
             font-size: 13px;
             color: var(--muted);
             margin-bottom: 24px;
             line-height: 1.5;
         }
 
-        .input-field {
+        .input-box {
             width: 100%;
-            background: #0b0f17;
+            background: #090d16;
             border: 1px solid var(--border);
             border-radius: 12px;
             padding: 12px 16px;
@@ -166,12 +148,10 @@
             transition: border-color 0.2s;
         }
 
-        .input-field:focus {
-            border-color: var(--primary);
-        }
+        .input-box:focus { border-color: var(--primary); }
 
-        /* App Dashboard */
-        #appDashboard {
+        /* SCREEN 2: The Main Vault Dashboard */
+        #screen2 {
             flex: 1;
             display: none;
             max-width: 1100px;
@@ -180,21 +160,22 @@
             padding: 28px 20px;
         }
 
-        .dashboard-header {
+        .toolbar {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 24px;
             gap: 16px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
         }
 
-        .search-bar {
+        .search-box {
             flex: 1;
-            max-width: 480px;
+            min-width: 280px;
             position: relative;
         }
 
-        .search-bar input {
+        .search-box input {
             width: 100%;
             background: var(--surface);
             border: 1px solid var(--border);
@@ -214,67 +195,40 @@
             color: var(--muted);
         }
 
-        /* Navigation Tabs */
-        .tabs {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 24px;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 12px;
-        }
-
-        .tab-btn {
-            background: none;
-            border: none;
-            color: var(--muted);
-            font-size: 13px;
-            font-weight: 600;
-            padding: 8px 16px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .tab-btn.active {
-            background: var(--surface);
-            color: var(--text);
-            border: 1px solid var(--border);
-        }
-
-        /* Password Cards Grid */
+        /* Vault Cards */
         .vault-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
             gap: 16px;
         }
 
-        .password-card {
+        .card {
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 18px;
+            border-radius: 18px;
+            padding: 20px;
             display: flex;
             flex-direction: column;
             gap: 14px;
             transition: transform 0.15s, border-color 0.15s;
         }
 
-        .password-card:hover {
-            border-color: #484f58;
+        .card:hover {
+            border-color: #3b82f6;
             transform: translateY(-2px);
         }
 
-        .card-top {
+        .card-header {
             display: flex;
             align-items: center;
             gap: 12px;
         }
 
-        .site-logo {
-            width: 40px;
-            height: 40px;
-            border-radius: 10px;
-            background: #21262d;
+        .logo-circle {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            background: #1e293b;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -282,19 +236,9 @@
             font-weight: 700;
         }
 
-        .site-info h3 {
-            font-size: 15px;
-            font-weight: 600;
-        }
-
-        .site-info p {
-            font-size: 12px;
-            color: var(--muted);
-        }
-
         .card-middle {
-            background: #0b0f17;
-            border: 1px solid #21262d;
+            background: #090d16;
+            border: 1px solid #1e293b;
             border-radius: 10px;
             padding: 10px 14px;
             display: flex;
@@ -302,98 +246,118 @@
             align-items: center;
         }
 
-        .password-display {
+        .secret-dots {
             font-family: monospace;
             font-size: 14px;
-            letter-spacing: 1px;
-            color: #79c0ff;
+            letter-spacing: 2px;
+            color: #60a5fa;
+            user-select: none;
         }
 
-        .card-actions {
+        .card-footer {
             display: flex;
+            justify-content: space-between;
+            align-items: center;
             gap: 8px;
         }
 
-        .action-btn {
-            background: #21262d;
-            border: 1px solid var(--border);
-            color: var(--text);
+        .btn-share {
+            background: rgba(16, 185, 129, 0.12);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.3);
             padding: 6px 12px;
             border-radius: 8px;
             font-size: 12px;
+            font-weight: 600;
             cursor: pointer;
-            transition: background 0.15s;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
 
-        .action-btn:hover {
-            background: #30363d;
+        .btn-share:hover {
+            background: rgba(16, 185, 129, 0.25);
         }
 
-        .delete-btn:hover {
-            color: var(--danger);
-            border-color: var(--danger);
-        }
-
-        /* Modal Dialog */
-        .modal-overlay {
+        /* MODAL: 1-Time Self-Destruct Send */
+        .modal-bg {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(4px);
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(8px);
             display: none;
             align-items: center;
             justify-content: center;
             z-index: 100;
+            padding: 16px;
         }
 
-        .modal {
+        .modal-box {
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 28px;
-            max-width: 440px;
+            border-radius: 24px;
+            padding: 32px;
+            max-width: 480px;
             width: 100%;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8);
+            position: relative;
         }
 
-        .modal h3 {
-            font-size: 18px;
-            font-weight: 700;
-            margin-bottom: 16px;
-        }
-
-        .modal-buttons {
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        /* Generator View */
-        #generatorView {
-            display: none;
-            max-width: 500px;
-            margin: 0 auto;
-            background: var(--surface);
-            border: 1px solid var(--border);
+        .burn-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            padding: 4px 12px;
             border-radius: 20px;
-            padding: 28px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .timer-bar {
+            background: #090d16;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px;
+            margin: 16px 0;
             text-align: center;
         }
 
-        .gen-display {
-            background: #0b0f17;
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 16px;
+        .timer-count {
+            font-size: 26px;
+            font-weight: 800;
+            color: #fbbf24;
             font-family: monospace;
-            font-size: 18px;
-            font-weight: 600;
-            color: var(--accent);
-            margin: 16px 0;
-            word-break: break-all;
         }
 
-        /* Toast notification */
+        .anti-peek-display {
+            background: #000;
+            border: 2px dashed #334155;
+            border-radius: 12px;
+            padding: 18px;
+            text-align: center;
+            margin: 16px 0;
+            position: relative;
+        }
+
+        .peek-blur {
+            filter: blur(8px);
+            user-select: none;
+            transition: filter 0.2s;
+            font-family: monospace;
+            font-size: 16px;
+            color: #38bdf8;
+            font-weight: 700;
+        }
+
+        .peek-revealed {
+            filter: blur(0px) !important;
+        }
+
+        /* Toast */
         #toast {
             position: fixed;
             bottom: 24px;
@@ -402,17 +366,11 @@
             color: #042f1a;
             font-weight: 600;
             font-size: 13px;
-            padding: 10px 20px;
-            border-radius: 10px;
+            padding: 12px 20px;
+            border-radius: 12px;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
             display: none;
-            animation: fadeIn 0.2s;
             z-index: 200;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
@@ -424,177 +382,256 @@
             <span class="brand-icon">🛡️</span>
             <h1>KeyFort</h1>
         </div>
-        <div class="user-controls">
-            <div class="status-badge">
-                <div class="status-dot"></div>
-                <span>Vault Encrypted</span>
-            </div>
-            <button class="btn btn-secondary" id="lockBtn" style="display: none;" onclick="lockVault()">🔒 Lock</button>
+        <div class="header-actions">
+            <button class="btn btn-secondary" onclick="toggleAntiPeek()" id="privacyShieldBtn">👁️ Anti-Peeking Shield</button>
+            <button class="btn btn-secondary" id="lockVaultBtn" style="display: none;" onclick="lockVault()">🔒 Lock</button>
         </div>
     </header>
 
-    <!-- 1. Unlock Screen (First thing you see) -->
-    <div id="unlockScreen">
-        <div class="unlock-card">
-            <div class="unlock-icon">🔐</div>
-            <h2>Unlock Your Vault</h2>
-            <p>Welcome back! Enter your master password to access your accounts.</p>
-            <input type="password" id="masterPassInput" class="input-field" placeholder="Enter master password..." value="my-secret-password">
+    <!-- SCREEN 1: Master Lock -->
+    <div id="screen1">
+        <div class="login-card">
+            <div class="login-icon">🔐</div>
+            <h2>KeyFort Vault</h2>
+            <p>Enter your Master Password to unlock all your accounts securely.</p>
+            <input type="password" id="masterPass" class="input-box" placeholder="Master Password" value="password123">
             <button class="btn" style="width: 100%; justify-content: center; padding: 12px;" onclick="unlockVault()">Unlock Vault</button>
             <div style="font-size: 11px; color: var(--muted); margin-top: 14px;">
-                💡 <em>Click "Unlock Vault" to explore your vault.</em>
+                💡 <em>Click "Unlock Vault" to access your credentials.</em>
             </div>
         </div>
     </div>
 
-    <!-- 2. Main Dashboard (After Unlock) -->
-    <div id="appDashboard">
-        
-        <!-- Tabs -->
-        <div class="tabs">
-            <button class="tab-btn active" id="tabVault" onclick="showTab('vault')">🔑 Passwords</button>
-            <button class="tab-btn" id="tabGen" onclick="showTab('gen')">⚡ Generator</button>
+    <!-- SCREEN 2: Vault Dashboard -->
+    <div id="screen2">
+        <div class="toolbar">
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="searchFilter" placeholder="Search accounts (e.g. Google, Netflix)..." oninput="filterCards()">
+            </div>
+            <button class="btn" onclick="openAddModal()">+ Add Account</button>
         </div>
 
-        <!-- Vault Tab Content -->
-        <div id="vaultContent">
-            <div class="dashboard-header">
-                <div class="search-bar">
-                    <span class="search-icon">🔍</span>
-                    <input type="text" id="searchInput" placeholder="Search passwords (e.g. Google, Netflix)..." oninput="filterPasswords()">
-                </div>
-                <button class="btn" onclick="openAddModal()">+ Add New Password</button>
-            </div>
-
-            <!-- Passwords List -->
-            <div class="vault-grid" id="vaultGrid">
-                <!-- Cards will render here -->
-            </div>
+        <div class="vault-grid" id="vaultGrid">
+            <!-- Cards rendered here -->
         </div>
-
-        <!-- Generator Tab Content -->
-        <div id="generatorView">
-            <div style="font-size: 32px; margin-bottom: 8px;">⚡</div>
-            <h3>Strong Password Generator</h3>
-            <p style="font-size: 12px; color: var(--muted);">Generate strong, unique passwords that hackers cannot guess.</p>
-            
-            <div class="gen-display" id="generatedPassword">K8#mQ2$pL9@vR4!w</div>
-            
-            <div style="display: flex; gap: 10px; justify-content: center; margin-top: 16px;">
-                <button class="btn" onclick="generateNewPassword()">🎲 Generate New</button>
-                <button class="btn btn-secondary" onclick="copyText(document.getElementById('generatedPassword').textContent, 'Generated password copied!')">📋 Copy Password</button>
-            </div>
-        </div>
-
     </div>
 
-    <!-- Add Password Modal -->
-    <div class="modal-overlay" id="addModal">
-        <div class="modal">
-            <h3>Add New Password</h3>
-            <label style="font-size: 12px; color: var(--muted); margin-bottom: 4px; display: block;">Service / Website Name</label>
-            <input type="text" id="newSite" class="input-field" placeholder="e.g. Amazon, Twitter, Bank">
+    <!-- SCREEN 3 (Modal): 1-Time Self-Destruct Share to Friend -->
+    <div class="modal-bg" id="shareModal">
+        <div class="modal-box">
+            <div class="burn-badge">🔥 1-Time Self-Destruct Link</div>
+            <h3 id="shareTitle" style="font-size: 18px; margin-bottom: 6px;">Share with Friend</h3>
+            <p style="font-size: 12px; color: var(--muted); line-height: 1.5;">
+                This creates a <strong>disposable encrypted one-time passcode</strong>. Even if someone takes a photo of the WhatsApp chat, the password self-destructs and cannot be opened again!
+            </p>
+
+            <!-- Self-Destruct Timer -->
+            <div class="timer-bar">
+                <div style="font-size: 11px; color: var(--muted); margin-bottom: 4px;">EXPIRES IN</div>
+                <div class="timer-count" id="countdown">60s</div>
+                <div style="font-size: 11px; color: #f87171; margin-top: 4px;">Burns immediately after 1 view</div>
+            </div>
+
+            <!-- Anti-Camera & Shoulder-Surfing Display -->
+            <div class="anti-peek-display">
+                <div style="font-size: 11px; color: var(--muted); margin-bottom: 8px;">HOLD BUTTON TO PEEK (Auto-hides after 3s)</div>
+                <div class="peek-blur" id="peekSecret">X9#kL2$vM8@qR4!w</div>
+            </div>
+
+            <div style="display: flex; gap: 8px; justify-content: center; margin-bottom: 18px;">
+                <button class="btn btn-secondary" onmousedown="revealPeek()" onmouseup="hidePeek()" ontouchstart="revealPeek()" ontouchend="hidePeek()">👁️ Press & Hold to Peek</button>
+            </div>
+
+            <!-- WhatsApp Link Generator -->
+            <div style="background: #090d16; border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 16px;">
+                <div style="font-size: 11px; color: var(--muted); margin-bottom: 4px;">WHATSAPP 1-TIME BURN LINK:</div>
+                <div style="font-family: monospace; font-size: 12px; color: #34d399; word-break: break-all;" id="shareUrlPreview">https://keyfort.link/burn#token-91f82...</div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button class="btn btn-secondary" onclick="closeShareModal()">Done</button>
+                <button class="btn" style="background: #25D366; color: white;" onclick="copyShareLink()">📋 Copy WhatsApp Link</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Add New Account -->
+    <div class="modal-bg" id="addModal">
+        <div class="modal-box">
+            <h3 style="font-size: 18px; margin-bottom: 16px;">Add New Account</h3>
+            
+            <label style="font-size: 12px; color: var(--muted); margin-bottom: 4px; display: block;">Website / App Name</label>
+            <input type="text" id="newSite" class="input-box" placeholder="e.g. Amazon, Bank, Instagram">
             
             <label style="font-size: 12px; color: var(--muted); margin-bottom: 4px; display: block;">Username or Email</label>
-            <input type="text" id="newUser" class="input-field" placeholder="e.g. sameer@gmail.com">
+            <input type="text" id="newUser" class="input-box" placeholder="e.g. sameer@gmail.com">
             
             <label style="font-size: 12px; color: var(--muted); margin-bottom: 4px; display: block;">Password</label>
-            <div style="display: flex; gap: 8px;">
-                <input type="text" id="newPass" class="input-field" placeholder="Password" style="margin-bottom: 0;">
-                <button class="btn btn-secondary" type="button" onclick="document.getElementById('newPass').value = makeRandomPass()">⚡</button>
+            <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                <input type="text" id="newPass" class="input-box" placeholder="Password" style="margin-bottom: 0;">
+                <button class="btn btn-secondary" type="button" onclick="document.getElementById('newPass').value = makeRandomPass()">⚡ Random</button>
             </div>
 
-            <div class="modal-buttons">
-                <button class="btn btn-secondary" onclick="closeAddModal()">Cancel</button>
-                <button class="btn" onclick="saveNewPassword()">Save Password</button>
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button class="btn btn-secondary" onclick="document.getElementById('addModal').style.display='none'">Cancel</button>
+                <button class="btn" onclick="saveNewAccount()">Save Account</button>
             </div>
         </div>
     </div>
 
-    <!-- Toast Notification -->
     <div id="toast">Copied to clipboard!</div>
 
     <script>
-        // Sample Vault Data
-        let vault = [
-            { id: 1, site: "Google Workspace", user: "sameer@gmail.com", pass: "s3cur3#P@ssw0rd!2026", logo: "G", color: "#ea4335" },
-            { id: 2, site: "GitHub Account", user: "MohammedSameer-57", pass: "ghp_TokenSecr3t_9921", logo: "git", color: "#f0f6fc" },
-            { id: 3, site: "Netflix Family", user: "sameer.stream@home.net", pass: "N3tfl!x_B!ng3#2026", logo: "N", color: "#e50914" },
-            { id: 4, site: "Spotify Music", user: "sameer.music@gmail.com", pass: "Sp0t!fy#Tr@cks_882", logo: "♫", color: "#1db954" }
+        let accounts = [
+            { id: 1, name: "Google Workspace", user: "sameer@gmail.com", pass: "G00gl3#S3cur3_2026", logo: "G", color: "#ea4335" },
+            { id: 2, name: "GitHub Account", user: "MohammedSameer-57", pass: "ghp_TokenS3cr3t_9921", logo: "git", color: "#f8fafc" },
+            { id: 3, name: "Netflix Family", user: "sameer.stream@home.net", pass: "N3tfl!x_Pass#8821", logo: "N", color: "#e50914" },
+            { id: 4, name: "Bank Account", user: "Acc: **** 9182", pass: "B@nk#Pin_9918!", logo: "$", color: "#10b981" }
         ];
 
-        // Unlock Action
+        let timerInterval = null;
+        let timeLeft = 60;
+
         function unlockVault() {
-            document.getElementById('unlockScreen').style.display = 'none';
-            document.getElementById('appDashboard').style.display = 'block';
-            document.getElementById('lockBtn').style.display = 'inline-flex';
-            renderVault();
-            showToast("Vault unlocked successfully!");
+            document.getElementById('screen1').style.display = 'none';
+            document.getElementById('screen2').style.display = 'block';
+            document.getElementById('lockVaultBtn').style.display = 'inline-flex';
+            renderAccounts();
+            showToast("Vault Unlocked!");
         }
 
-        // Lock Action
         function lockVault() {
-            document.getElementById('unlockScreen').style.display = 'flex';
-            document.getElementById('appDashboard').style.display = 'none';
-            document.getElementById('lockBtn').style.display = 'none';
-            showToast("Vault locked.");
+            document.getElementById('screen1').style.display = 'flex';
+            document.getElementById('screen2').style.display = 'none';
+            document.getElementById('lockVaultBtn').style.display = 'none';
+            showToast("Vault Locked.");
         }
 
-        // Render Password Cards
-        function renderVault(filter = "") {
+        function renderAccounts(query = "") {
             const grid = document.getElementById('vaultGrid');
             grid.innerHTML = "";
 
-            const items = vault.filter(v => 
-                v.site.toLowerCase().includes(filter.toLowerCase()) || 
-                v.user.toLowerCase().includes(filter.toLowerCase())
+            const filtered = accounts.filter(a => 
+                a.name.toLowerCase().includes(query.toLowerCase()) || 
+                a.user.toLowerCase().includes(query.toLowerCase())
             );
 
-            if (items.length === 0) {
-                grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--muted); padding: 40px;">No accounts found matching "${filter}".</div>`;
-                return;
-            }
-
-            items.forEach(item => {
+            filtered.forEach(acc => {
                 const card = document.createElement('div');
-                card.className = 'password-card';
+                card.className = 'card';
                 card.innerHTML = `
-                    <div class="card-top">
-                        <div class="site-logo" style="color: ${item.color}">${item.logo}</div>
-                        <div class="site-info">
-                            <h3>${item.site}</h3>
-                            <p>${item.user}</p>
+                    <div class="card-header">
+                        <div class="logo-circle" style="color: ${acc.color}">${acc.logo}</div>
+                        <div>
+                            <h3 style="font-size: 15px; font-weight: 600;">${acc.name}</h3>
+                            <p style="font-size: 12px; color: var(--muted);">${acc.user}</p>
                         </div>
                     </div>
                     <div class="card-middle">
-                        <span class="password-display" id="pass-${item.id}">••••••••••••</span>
-                        <button class="action-btn" onclick="toggleSecret(${item.id}, '${item.pass}')">👁️ Peek</button>
+                        <span class="secret-dots" id="pass-${acc.id}">••••••••••••</span>
+                        <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px;" onclick="togglePeek(${acc.id}, '${acc.pass}')">👁️ Peek</button>
                     </div>
-                    <div class="card-actions">
-                        <button class="action-btn" onclick="copyText('${item.user}', 'Username copied!')">📋 Copy User</button>
-                        <button class="action-btn" onclick="copyText('${item.pass}', 'Password copied!')">🔑 Copy Password</button>
-                        <button class="action-btn delete-btn" onclick="deleteEntry(${item.id})">🗑️</button>
+                    <div class="card-footer">
+                        <button class="btn-share" onclick="openShareModal('${acc.name}', '${acc.pass}')">
+                            📤 Share to Friend
+                        </button>
+                        <div style="display: flex; gap: 6px;">
+                            <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px;" onclick="copyText('${acc.pass}', 'Password copied!')">🔑 Copy</button>
+                            <button class="btn btn-danger" style="padding: 6px 10px; font-size: 12px;" onclick="deleteAccount(${acc.id})">🗑️</button>
+                        </div>
                     </div>
                 `;
                 grid.appendChild(card);
             });
         }
 
-        function toggleSecret(id, pass) {
+        function togglePeek(id, pass) {
             const el = document.getElementById(`pass-${id}`);
             if (el.textContent === "••••••••••••") {
                 el.textContent = pass;
+                // Auto-hide after 5 seconds to prevent cameras from peeking
+                setTimeout(() => { el.textContent = "••••••••••••"; }, 5000);
             } else {
                 el.textContent = "••••••••••••";
             }
         }
 
-        function filterPasswords() {
-            const query = document.getElementById('searchInput').value;
-            renderVault(query);
+        function filterCards() {
+            renderAccounts(document.getElementById('searchFilter').value);
         }
 
-        // Add New Password Modal
+        // 1-Time Self-Destruct Share Modal
+        function openShareModal(name, pass) {
+            document.getElementById('shareTitle').textContent = `Send ${name} to Friend`;
+            
+            // Generate a randomized, unguessable one-time token
+            const randomToken = makeRandomPass();
+            document.getElementById('peekSecret').textContent = pass;
+            document.getElementById('shareUrlPreview').textContent = `https://keyfort.link/burn#key-${randomToken.substring(0,8)}...`;
+            
+            document.getElementById('shareModal').style.display = 'flex';
+
+            // Start 60-Second Countdown
+            timeLeft = 60;
+            document.getElementById('countdown').textContent = `${timeLeft}s`;
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                document.getElementById('countdown').textContent = `${timeLeft}s`;
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    document.getElementById('countdown').textContent = "EXPIRED (BURNED)";
+                    document.getElementById('peekSecret').textContent = "•••• (BURNED FROM MEMORY)";
+                }
+            }, 1000);
+        }
+
+        function closeShareModal() {
+            clearInterval(timerInterval);
+            document.getElementById('shareModal').style.display = 'none';
+        }
+
+        let peekTimeout = null;
+        function revealPeek() {
+            const el = document.getElementById('peekSecret');
+            el.classList.add('peek-revealed');
+            clearTimeout(peekTimeout);
+            // Automatically re-blur after 3 seconds so no camera can take a steady photo
+            peekTimeout = setTimeout(() => { hidePeek(); }, 3000);
+        }
+
+        function hidePeek() {
+            document.getElementById('peekSecret').classList.remove('peek-revealed');
+        }
+
+        function copyShareLink() {
+            const url = document.getElementById('shareUrlPreview').textContent;
+            copyText(url, "1-Time Burn Link copied for WhatsApp!");
+        }
+
+        // Anti-Peeking Shield for entire screen
+        let shieldActive = false;
+        function toggleAntiPeek() {
+            shieldActive = !shieldActive;
+            const btn = document.getElementById('privacyShieldBtn');
+            const dots = document.querySelectorAll('.secret-dots');
+            if (shieldActive) {
+                btn.style.background = '#ef4444';
+                btn.style.color = '#fff';
+                btn.textContent = '🛡️ Shield: ACTIVE (Camera Proof)';
+                dots.forEach(d => d.style.filter = 'blur(6px)');
+                showToast("Anti-Peeking Shield Active: All passwords blurred.");
+            } else {
+                btn.style.background = '';
+                btn.style.color = '';
+                btn.textContent = '👁️ Anti-Peeking Shield';
+                dots.forEach(d => d.style.filter = 'none');
+                showToast("Anti-Peeking Shield Disabled.");
+            }
+        }
+
+        // Helpers
         function openAddModal() {
             document.getElementById('newSite').value = "";
             document.getElementById('newUser').value = "";
@@ -602,46 +639,48 @@
             document.getElementById('addModal').style.display = 'flex';
         }
 
-        function closeAddModal() {
-            document.getElementById('addModal').style.display = 'none';
-        }
-
-        function saveNewPassword() {
+        function saveNewAccount() {
             const site = document.getElementById('newSite').value.trim();
             const user = document.getElementById('newUser').value.trim();
             const pass = document.getElementById('newPass').value.trim();
 
             if (!site || !pass) {
-                alert("Please enter a website name and password.");
+                alert("Please enter a name and password.");
                 return;
             }
 
-            vault.push({
+            accounts.push({
                 id: Date.now(),
-                site: site,
-                user: user || "user",
+                name: site,
+                user: user || "personal",
                 pass: pass,
                 logo: site.charAt(0).toUpperCase(),
                 color: "#3b82f6"
             });
 
-            closeAddModal();
-            renderVault();
-            showToast(`Added ${site} to your vault!`);
+            document.getElementById('addModal').style.display = 'none';
+            renderAccounts();
+            showToast(`Added ${site} to vault!`);
         }
 
-        function deleteEntry(id) {
-            vault = vault.filter(v => v.id !== id);
-            renderVault();
-            showToast("Account removed from vault.");
+        function deleteAccount(id) {
+            accounts = accounts.filter(a => a.id !== id);
+            renderAccounts();
+            showToast("Account deleted.");
         }
 
-        // Copy Helper
-        function copyText(text, msg) {
-            navigator.clipboard.writeText(text).then(() => {
+        function makeRandomPass() {
+            const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^&*";
+            let pass = "";
+            for (let i = 0; i < 16; i++) pass += chars.charAt(Math.floor(Math.random() * chars.length));
+            return pass;
+        }
+
+        function copyText(txt, msg) {
+            navigator.clipboard.writeText(txt).then(() => {
                 showToast(msg);
             }).catch(() => {
-                showToast("Copied: " + text);
+                showToast("Copied: " + txt);
             });
         }
 
@@ -650,35 +689,6 @@
             toast.textContent = msg;
             toast.style.display = 'block';
             setTimeout(() => { toast.style.display = 'none'; }, 2200);
-        }
-
-        // Tab Switching
-        function showTab(tab) {
-            if (tab === 'vault') {
-                document.getElementById('tabVault').classList.add('active');
-                document.getElementById('tabGen').classList.remove('active');
-                document.getElementById('vaultContent').style.display = 'block';
-                document.getElementById('generatorView').style.display = 'none';
-            } else {
-                document.getElementById('tabGen').classList.add('active');
-                document.getElementById('tabVault').classList.remove('active');
-                document.getElementById('vaultContent').style.display = 'none';
-                document.getElementById('generatorView').style.display = 'block';
-            }
-        }
-
-        // Generator Logic
-        function makeRandomPass() {
-            const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^&*";
-            let pass = "";
-            for (let i = 0; i < 16; i++) {
-                pass += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-            return pass;
-        }
-
-        function generateNewPassword() {
-            document.getElementById('generatedPassword').textContent = makeRandomPass();
         }
     </script>
 </body>
