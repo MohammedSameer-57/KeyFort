@@ -3,687 +3,501 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KeyFort — Interactive Live Preview & Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <title>KeyFort — Minimal Preview</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #0b0f19;
-            --surface: #111827;
-            --surface-hover: #1f2937;
-            --border: #1e293b;
-            --primary: #6366f1;
-            --primary-hover: #4f46e5;
-            --accent: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
+            --bg: #09090b;
+            --card: #141417;
+            --card-hover: #1c1c21;
+            --border: #27272a;
+            --text: #fafafa;
+            --muted: #a1a1aa;
+            --accent: #22c55e;
+            --primary: #3b82f6;
         }
 
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-family: 'Inter', -apple-system, sans-serif;
         }
 
         body {
             background-color: var(--bg);
-            color: var(--text-main);
+            color: var(--text);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-        }
-
-        header {
-            background: rgba(17, 24, 39, 0.85);
-            backdrop-filter: blur(12px);
-            border-bottom: 1px solid var(--border);
-            padding: 16px 32px;
-            display: flex;
             align-items: center;
-            justify-content: space-between;
-            position: sticky;
-            top: 0;
-            z-index: 50;
+            padding: 24px 16px;
         }
 
-        .logo-area {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .logo-badge {
-            width: 40px;
-            height: 40px;
-            border-radius: 10px;
-            background: linear-gradient(135deg, #6366f1, #3b82f6);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
-        }
-
-        .logo-text h1 {
-            font-size: 20px;
-            font-weight: 700;
-            letter-spacing: -0.5px;
-        }
-
-        .logo-text p {
-            font-size: 12px;
-            color: var(--text-muted);
-        }
-
-        .server-status {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 6px 14px;
-            border-radius: 20px;
-            background: rgba(16, 185, 129, 0.1);
-            border: 1px solid rgba(16, 185, 129, 0.3);
-            color: #34d399;
-            font-size: 13px;
-            font-weight: 500;
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #10b981;
-            box-shadow: 0 0 8px #10b981;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.4; }
-        }
-
-        main {
-            flex: 1;
-            max-width: 1300px;
-            margin: 0 auto;
+        /* Top Bar */
+        .top-bar {
             width: 100%;
-            padding: 32px 24px;
-            display: grid;
-            grid-template-columns: 420px 1fr;
-            gap: 32px;
+            max-width: 900px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 32px;
         }
 
-        @media (max-width: 960px) {
-            main {
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .brand h1 {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--muted);
+            background: var(--card);
+            border: 1px solid var(--border);
+            padding: 6px 12px;
+            border-radius: 20px;
+        }
+
+        .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 6px var(--accent);
+        }
+
+        /* Main Layout */
+        .container {
+            width: 100%;
+            max-width: 900px;
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            gap: 32px;
+            align-items: start;
+        }
+
+        @media (max-width: 768px) {
+            .container {
                 grid-template-columns: 1fr;
             }
         }
 
-        /* Phone Frame Mockup */
-        .phone-wrapper {
-            display: flex;
-            justify-content: center;
-        }
-
-        .phone-frame {
-            width: 375px;
-            height: 720px;
-            background: #090d16;
-            border: 10px solid #1e293b;
-            border-radius: 44px;
-            box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.05);
+        /* Minimal Phone Shell */
+        .phone {
+            width: 100%;
+            height: 620px;
+            background: #000000;
+            border: 1px solid var(--border);
+            border-radius: 36px;
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            position: relative;
-        }
-
-        .notch {
-            width: 120px;
-            height: 20px;
-            background: #1e293b;
-            border-radius: 0 0 14px 14px;
-            align-self: center;
-            position: absolute;
-            top: 0;
-            z-index: 20;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
         }
 
         .phone-header {
-            padding: 34px 20px 16px;
+            padding: 24px 20px 14px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         .phone-header h2 {
-            font-size: 18px;
-            font-weight: 700;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .search-box {
+            margin: 0 16px 14px;
+            background: #121214;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 9px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--muted);
+            font-size: 13px;
         }
 
         .phone-content {
             flex: 1;
-            padding: 16px;
+            padding: 0 16px;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 10px;
         }
 
-        .vault-item {
-            background: #131b2e;
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 16px;
-            padding: 14px;
+        /* Entry Cards */
+        .item {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 12px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .item:hover {
+            background: var(--card-hover);
+            border-color: #3f3f46;
+        }
+
+        .item-left {
             display: flex;
             align-items: center;
             gap: 12px;
-            transition: all 0.2s;
-            cursor: pointer;
         }
 
-        .vault-item:hover {
-            border-color: var(--primary);
-            background: #18223a;
-        }
-
-        .vault-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 12px;
+        .icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            background: #202025;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
-            font-weight: 700;
-        }
-
-        .icon-google { background: #ea4335; color: white; }
-        .icon-github { background: #24292e; color: white; border: 1px solid #444; }
-        .icon-bank { background: #059669; color: white; }
-        .icon-netflix { background: #e50914; color: white; }
-
-        .vault-meta {
-            flex: 1;
-        }
-
-        .vault-meta h4 {
             font-size: 14px;
             font-weight: 600;
         }
 
-        .vault-meta p {
-            font-size: 12px;
-            color: var(--text-muted);
-            font-family: 'JetBrains Mono', monospace;
-        }
-
-        .cipher-tag {
-            font-size: 10px;
-            padding: 3px 8px;
-            border-radius: 6px;
-            background: rgba(99, 102, 241, 0.15);
-            color: #818cf8;
+        .item-info h4 {
+            font-size: 13px;
             font-weight: 600;
         }
 
-        /* Bottom Nav */
-        .bottom-nav {
-            background: #0f172a;
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
-            padding: 10px 16px;
+        .item-info p {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 1px;
+        }
+
+        .copy-pill {
+            font-size: 11px;
+            color: var(--muted);
+            background: #1f1f24;
+            padding: 4px 8px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+
+        /* Minimal Phone Nav */
+        .nav {
+            background: #09090b;
+            border-top: 1px solid var(--border);
+            padding: 12px 16px;
             display: flex;
             justify-content: space-around;
         }
 
-        .nav-btn {
+        .nav-item {
             background: none;
             border: none;
-            color: var(--text-muted);
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 4px;
-            font-size: 11px;
-            cursor: pointer;
-            transition: color 0.2s;
         }
 
-        .nav-btn.active {
-            color: var(--primary);
+        .nav-item.active {
+            color: var(--text);
         }
 
-        .nav-btn span {
-            font-size: 18px;
-        }
-
-        /* Right Panel Dashboard */
-        .dashboard-panel {
+        /* Minimal Right Side Cards */
+        .side-col {
             display: flex;
             flex-direction: column;
-            gap: 24px;
+            gap: 16px;
         }
 
         .card {
-            background: var(--surface);
+            background: var(--card);
             border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 24px;
+            border-radius: 18px;
+            padding: 20px;
         }
 
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 18px;
-        }
-
-        .card-header h3 {
-            font-size: 16px;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .btn {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 9px 18px;
-            border-radius: 10px;
-            font-size: 13px;
+        .card h3 {
+            font-size: 14px;
             font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .btn:hover {
-            background: var(--primary-hover);
-        }
-
-        .btn-outline {
-            background: transparent;
-            border: 1px solid var(--border);
-            color: var(--text-main);
-        }
-
-        .btn-outline:hover {
-            background: var(--surface-hover);
-        }
-
-        .code-box {
-            background: #060911;
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 16px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 13px;
-            color: #38bdf8;
-            overflow-x: auto;
-            line-height: 1.6;
-        }
-
-        .badge-verified {
-            background: rgba(16, 185, 129, 0.15);
-            color: #34d399;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .sim-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 12px;
-            margin-top: 14px;
-        }
-
-        .sim-card {
-            background: #0d1322;
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 14px;
-            text-align: center;
-        }
-
-        .sim-card h5 {
-            font-size: 12px;
-            color: var(--text-muted);
             margin-bottom: 6px;
         }
 
-        .sim-card p {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--accent);
+        .card p {
+            font-size: 12px;
+            color: var(--muted);
+            line-height: 1.5;
+            margin-bottom: 14px;
         }
 
-        .input-group {
-            display: flex;
-            gap: 8px;
-            margin-top: 12px;
-        }
-
-        input {
-            flex: 1;
-            background: #090d16;
+        .code {
+            background: #09090b;
             border: 1px solid var(--border);
             border-radius: 10px;
-            padding: 10px 14px;
-            color: white;
-            font-size: 13px;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #38bdf8;
+            overflow-x: auto;
         }
 
-        input:focus {
-            outline: none;
-            border-color: var(--primary);
+        .btn-action {
+            background: #27272a;
+            color: var(--text);
+            border: 1px solid #3f3f46;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .btn-action:hover {
+            background: #3f3f46;
         }
     </style>
 </head>
 <body>
 
-    <header>
-        <div class="logo-area">
-            <div class="logo-badge">🛡️</div>
-            <div class="logo-text">
-                <h1>KeyFort Control Center</h1>
-                <p>Zero-Knowledge Security & Threat-Aware Orchestrator</p>
+    <!-- Header -->
+    <div class="top-bar">
+        <div class="brand">
+            <span style="font-size: 20px;">🛡️</span>
+            <h1>KeyFort Minimal</h1>
+        </div>
+        <div class="status-pill">
+            <div class="dot"></div>
+            <span id="backendStatus">Checking backend...</span>
+        </div>
+    </div>
+
+    <div class="container">
+        
+        <!-- Mobile Phone Preview -->
+        <div class="phone">
+            <div class="phone-header">
+                <h2 id="phoneTitle">Vault</h2>
+                <span style="font-size: 11px; color: var(--accent); font-weight: 600;">AES-256</span>
             </div>
-        </div>
-        <div class="server-status" id="serverPill">
-            <div class="status-dot"></div>
-            <span id="serverStatusText">Connecting to localhost:8080...</span>
-        </div>
-    </header>
 
-    <main>
-        <!-- Phone Mockup (Mobile App Preview) -->
-        <div class="phone-wrapper">
-            <div class="phone-frame">
-                <div class="notch"></div>
-                <div class="phone-header">
-                    <h2 id="screenTitle">My Vault</h2>
-                    <span style="font-size: 13px; color: var(--accent); font-weight: 600;">🔒 AES-256</span>
-                </div>
+            <div class="search-box">
+                <span>🔍</span>
+                <span>Search vault...</span>
+            </div>
 
-                <div class="phone-content" id="phoneBody">
-                    <!-- Vault Entries -->
-                    <div class="vault-item" onclick="revealSecret(this, 's3cur3#P@ssw0rd!')">
-                        <div class="vault-icon icon-google">G</div>
-                        <div class="vault-meta">
-                            <h4>Google Workspace</h4>
+            <div class="phone-content" id="phoneBody">
+                <div class="item" onclick="togglePass(this, 's3cur3#P@ssw0rd!')">
+                    <div class="item-left">
+                        <div class="icon" style="color: #ef4444;">G</div>
+                        <div class="item-info">
+                            <h4>Google</h4>
                             <p>sameer@gmail.com</p>
-                            <span class="cipher-tag">Tap to reveal password</span>
                         </div>
                     </div>
+                    <span class="copy-pill">Tap to view</span>
+                </div>
 
-                    <div class="vault-item" onclick="revealSecret(this, 'ghp_token_secret_4492')">
-                        <div class="vault-icon icon-github">git</div>
-                        <div class="vault-meta">
-                            <h4>GitHub Account</h4>
+                <div class="item" onclick="togglePass(this, 'ghp_secret_token_948')">
+                    <div class="item-left">
+                        <div class="icon">git</div>
+                        <div class="item-info">
+                            <h4>GitHub</h4>
                             <p>MohammedSameer-57</p>
-                            <span class="cipher-tag">Tap to reveal password</span>
                         </div>
                     </div>
-
-                    <div class="vault-item" onclick="revealSecret(this, 'N3tfl!x_B!ng3_2026')">
-                        <div class="vault-icon icon-netflix">N</div>
-                        <div class="vault-meta">
-                            <h4>Netflix Family</h4>
-                            <p>sameer.stream@home</p>
-                            <span class="cipher-tag">Tap to reveal password</span>
-                        </div>
-                    </div>
-
-                    <div class="vault-item" onclick="revealSecret(this, 'B@nk#Pin_8831!')">
-                        <div class="vault-icon icon-bank">$</div>
-                        <div class="vault-meta">
-                            <h4>Online Banking</h4>
-                            <p>Acc: **** 9182</p>
-                            <span class="cipher-tag">Tap to reveal password</span>
-                        </div>
-                    </div>
-
-                    <div style="margin-top: 10px; padding: 12px; background: rgba(99, 102, 241, 0.1); border-radius: 12px; font-size: 11px; color: #a5b4fc; text-align: center;">
-                        ✨ <strong>Zero-Knowledge:</strong> All items are encrypted on-device with HKDF-derived subkeys before syncing!
-                    </div>
+                    <span class="copy-pill">Tap to view</span>
                 </div>
 
-                <!-- 4 Tab Bottom Navigation matching Android app -->
-                <div class="bottom-nav">
-                    <button class="nav-btn active" onclick="switchTab('vault')">
-                        <span>🛡️</span>Vaults
-                    </button>
-                    <button class="nav-btn" onclick="switchTab('send')">
-                        <span>📤</span>Send
-                    </button>
-                    <button class="nav-btn" onclick="switchTab('gen')">
-                        <span>⚡</span>Generator
-                    </button>
-                    <button class="nav-btn" onclick="switchTab('settings')">
-                        <span>⚙️</span>Settings
-                    </button>
+                <div class="item" onclick="togglePass(this, 'N3tfl!x_Pass#2026')">
+                    <div class="item-left">
+                        <div class="icon" style="color: #e50914;">N</div>
+                        <div class="item-info">
+                            <h4>Netflix</h4>
+                            <p>family@home</p>
+                        </div>
+                    </div>
+                    <span class="copy-pill">Tap to view</span>
                 </div>
+
+                <div class="item" onclick="togglePass(this, 'B@nk#Pin_8831!')">
+                    <div class="item-left">
+                        <div class="icon" style="color: #10b981;">$</div>
+                        <div class="item-info">
+                            <h4>Banking</h4>
+                            <p>**** 9182</p>
+                        </div>
+                    </div>
+                    <span class="copy-pill">Tap to view</span>
+                </div>
+            </div>
+
+            <!-- Bottom Nav -->
+            <div class="nav">
+                <button class="nav-item active" onclick="setTab('vault')">
+                    <span>🛡️</span>Vault
+                </button>
+                <button class="nav-item" onclick="setTab('gen')">
+                    <span>⚡</span>Generator
+                </button>
+                <button class="nav-item" onclick="setTab('ledger')">
+                    <span>📜</span>Audit Log
+                </button>
             </div>
         </div>
 
-        <!-- Dashboard Controls & Real-Time Server Diagnostics -->
-        <div class="dashboard-panel">
+        <!-- Minimal Side Panels -->
+        <div class="side-col">
             
-            <!-- Audit Ledger Live Inspector -->
+            <!-- Live Backend Card -->
             <div class="card">
-                <div class="card-header">
-                    <h3>📜 Tamper-Evident Audit Ledger (Live Server)</h3>
-                    <button class="btn btn-outline" onclick="fetchLedger()">🔄 Refresh Ledger</button>
-                </div>
-                <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 12px;">
-                    This real-time response is queried directly from your running Spring Boot backend at <code>http://localhost:8080/ledger/verify</code>:
-                </p>
-                <div class="code-box" id="ledgerOutput">Fetching live verification from backend...</div>
-                <div style="margin-top: 14px; display: flex; align-items: center; justify-content: space-between;">
-                    <span class="badge-verified" id="ledgerBadge">✓ SHA-256 Hash Chain Verified</span>
-                    <span style="font-size: 12px; color: var(--text-muted);">Append-only Merkle-style integrity</span>
+                <h3>Live Backend Status</h3>
+                <p>Real-time response from your running server (<code>localhost:8080/ledger/verify</code>):</p>
+                <div class="code" id="liveLedgerCode">Loading...</div>
+            </div>
+
+            <!-- Threat Engine Card -->
+            <div class="card">
+                <h3>Threat Defense Demo</h3>
+                <p>Simulate a distributed credential attack across multiple IPs:</p>
+                <button class="btn-action" onclick="runAttackDemo()">🚨 Test Bot Defense</button>
+                <div id="threatResult" style="margin-top: 12px; font-size: 12px; color: var(--muted); line-height: 1.5;">
+                    Status: Normal traffic. Zero-knowledge encryption active.
                 </div>
             </div>
 
-            <!-- Threat Engine & Risk Simulator -->
+            <!-- Architecture Info -->
             <div class="card">
-                <div class="card-header">
-                    <h3>🛡️ Threat Detection Simulator</h3>
-                    <button class="btn" onclick="simulateAttack()">🚨 Simulate Botnet Attack</button>
-                </div>
-                <p style="color: var(--text-muted); font-size: 13px;">
-                    KeyFort's <strong>Risk Engine</strong> analyzes access attempts over a 10-minute sliding window. Watch how distributed attack attempts are scored:
+                <h3>Super-Simple Architecture</h3>
+                <p>
+                    • <strong>Phone (Android):</strong> Encrypts all passwords on-device.<br>
+                    • <strong>Cloud (Spring Boot):</strong> Only receives encrypted ciphertexts.<br>
+                    • <strong>Audit Ledger:</strong> Cryptographic SHA-256 chain guarantees logs cannot be altered.
                 </p>
-                <div class="sim-grid">
-                    <div class="sim-card">
-                        <h5>DEVICE TRUST</h5>
-                        <p id="simTrust">TRUSTED</p>
-                    </div>
-                    <div class="sim-card">
-                        <h5>CURRENT RISK SCORE</h5>
-                        <p id="simScore" style="color: #34d399;">0 / 100</p>
-                    </div>
-                    <div class="sim-card">
-                        <h5>RISK DECISION</h5>
-                        <p id="simDecision" style="color: #38bdf8;">ALLOW</p>
-                    </div>
-                </div>
-                <div style="margin-top: 14px; font-size: 12px; color: var(--text-muted); background: #070c18; padding: 10px 14px; border-radius: 8px;">
-                    <span id="simLog">Normal traffic: Device fingerprint and geo-velocity are consistent. Anti-lockout protection active.</span>
-                </div>
-            </div>
-
-            <!-- Client-Side Zero-Knowledge Encryption Sandbox -->
-            <div class="card">
-                <div class="card-header">
-                    <h3>🔐 Zero-Knowledge Ciphertext Sandbox</h3>
-                </div>
-                <p style="color: var(--text-muted); font-size: 13px;">
-                    Test how KeyFort scrambles raw passwords into AES-256-GCM ciphertexts before transmitting to the server:
-                </p>
-                <div class="input-group">
-                    <input type="text" id="plainInput" placeholder="Type a password (e.g. MySecretPass123)" value="KeyFort@SuperSecret_2026">
-                    <button class="btn" onclick="encryptDemo()">🔒 Encrypt</button>
-                </div>
-                <div style="margin-top: 12px;">
-                    <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">ENCRYPTED BLOB (What the server actually sees):</div>
-                    <div class="code-box" id="cipherOutput" style="color: #34d399; font-size: 12px;">aad: keyfort|entry|ent_981a|v1<br>iv: 9f8a21bc4e0281fa<br>ciphertext: d8b2c1741f018e6a2b9183cc94819aa3...</div>
-                </div>
             </div>
 
         </div>
-    </main>
+
+    </div>
 
     <script>
-        // Fetch real status from running backend
-        async function fetchLedger() {
-            const out = document.getElementById('ledgerOutput');
-            const pill = document.getElementById('serverStatusText');
+        // Check live backend
+        async function checkBackend() {
+            const statusPill = document.getElementById('backendStatus');
+            const codeBox = document.getElementById('liveLedgerCode');
             try {
                 const res = await fetch('http://localhost:8080/ledger/verify');
-                const data = await res.json();
-                out.innerHTML = JSON.stringify(data, null, 2);
-                pill.textContent = "Server Online (Port 8080)";
-                pill.parentElement.style.color = "#34d399";
-            } catch (e) {
-                out.textContent = "Could not reach http://localhost:8080/ledger/verify.\n(Make sure KeyFort server is running in terminal!)";
-                pill.textContent = "Server Offline";
-                pill.parentElement.style.color = "#ef4444";
+                const json = await res.json();
+                statusPill.textContent = 'Server Online';
+                codeBox.textContent = JSON.stringify(json, null, 2);
+            } catch (err) {
+                statusPill.textContent = 'Server Offline';
+                codeBox.textContent = 'Start server with: .\\gradlew.bat :keyfort-server:run';
             }
         }
 
-        // Tap to reveal password in phone mockup
-        function revealSecret(el, secret) {
-            const tag = el.querySelector('.cipher-tag');
-            if (tag.textContent.startsWith('Password:')) {
-                tag.textContent = 'Tap to reveal password';
-                tag.style.color = '#818cf8';
+        // Tap to reveal
+        function togglePass(card, pass) {
+            const pill = card.querySelector('.copy-pill');
+            if (pill.textContent.startsWith('•')) {
+                pill.textContent = 'Tap to view';
+                pill.style.color = 'var(--muted)';
             } else {
-                tag.textContent = 'Password: ' + secret;
-                tag.style.color = '#34d399';
+                pill.textContent = pass;
+                pill.style.color = 'var(--accent)';
             }
         }
 
-        // Switch mobile app tabs
-        function switchTab(tab) {
+        // Phone Tabs
+        function setTab(tab) {
+            const title = document.getElementById('phoneTitle');
             const body = document.getElementById('phoneBody');
-            const title = document.getElementById('screenTitle');
-            const btns = document.querySelectorAll('.nav-btn');
+            const btns = document.querySelectorAll('.nav-item');
             btns.forEach(b => b.classList.remove('active'));
 
             if (tab === 'vault') {
                 btns[0].classList.add('active');
-                title.textContent = 'My Vault';
+                title.textContent = 'Vault';
                 body.innerHTML = `
-                    <div class="vault-item" onclick="revealSecret(this, 's3cur3#P@ssw0rd!')">
-                        <div class="vault-icon icon-google">G</div>
-                        <div class="vault-meta">
-                            <h4>Google Workspace</h4>
-                            <p>sameer@gmail.com</p>
-                            <span class="cipher-tag">Tap to reveal password</span>
+                    <div class="item" onclick="togglePass(this, 's3cur3#P@ssw0rd!')">
+                        <div class="item-left">
+                            <div class="icon" style="color: #ef4444;">G</div>
+                            <div class="item-info">
+                                <h4>Google</h4>
+                                <p>sameer@gmail.com</p>
+                            </div>
                         </div>
+                        <span class="copy-pill">Tap to view</span>
                     </div>
-                    <div class="vault-item" onclick="revealSecret(this, 'ghp_token_secret_4492')">
-                        <div class="vault-icon icon-github">git</div>
-                        <div class="vault-meta">
-                            <h4>GitHub Account</h4>
-                            <p>MohammedSameer-57</p>
-                            <span class="cipher-tag">Tap to reveal password</span>
+                    <div class="item" onclick="togglePass(this, 'ghp_secret_token_948')">
+                        <div class="item-left">
+                            <div class="icon">git</div>
+                            <div class="item-info">
+                                <h4>GitHub</h4>
+                                <p>MohammedSameer-57</p>
+                            </div>
                         </div>
+                        <span class="copy-pill">Tap to view</span>
                     </div>
-                    <div class="vault-item" onclick="revealSecret(this, 'N3tfl!x_B!ng3_2026')">
-                        <div class="vault-icon icon-netflix">N</div>
-                        <div class="vault-meta">
-                            <h4>Netflix Family</h4>
-                            <p>sameer.stream@home</p>
-                            <span class="cipher-tag">Tap to reveal password</span>
+                    <div class="item" onclick="togglePass(this, 'N3tfl!x_Pass#2026')">
+                        <div class="item-left">
+                            <div class="icon" style="color: #e50914;">N</div>
+                            <div class="item-info">
+                                <h4>Netflix</h4>
+                                <p>family@home</p>
+                            </div>
                         </div>
-                    </div>`;
-            } else if (tab === 'send') {
-                btns[1].classList.add('active');
-                title.textContent = 'KeyFort Send';
-                body.innerHTML = `
-                    <div style="text-align: center; padding: 30px 10px;">
-                        <div style="font-size: 38px; margin-bottom: 12px;">📤</div>
-                        <h4 style="margin-bottom: 6px;">End-to-End Encrypted Send</h4>
-                        <p style="font-size: 12px; color: var(--text-muted); line-height: 1.5;">Share passwords and credentials safely with auto-destruct links.</p>
-                        <button class="btn" style="margin-top: 18px;" onclick="alert('Secure Send Link Created!')">+ Create New Send</button>
+                        <span class="copy-pill">Tap to view</span>
                     </div>`;
             } else if (tab === 'gen') {
+                btns[1].classList.add('active');
+                title.textContent = 'Generator';
+                const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^&*";
+                let pass = "";
+                for (let i = 0; i < 16; i++) pass += chars.charAt(Math.floor(Math.random() * chars.length));
+                body.innerHTML = `
+                    <div style="padding: 24px 8px; text-align: center;">
+                        <div style="font-size: 11px; color: var(--muted); margin-bottom: 8px;">STRONG PASSWORD</div>
+                        <div class="code" style="font-size: 15px; margin-bottom: 16px; color: var(--accent);">${pass}</div>
+                        <button class="btn-action" style="width: 100%;" onclick="setTab('gen')">Generate New</button>
+                    </div>`;
+            } else if (tab === 'ledger') {
                 btns[2].classList.add('active');
-                title.textContent = 'Password Generator';
-                const randomPass = generatePassword();
+                title.textContent = 'Audit Log';
                 body.innerHTML = `
-                    <div style="padding: 10px;">
-                        <h4 style="margin-bottom: 8px;">Generated Password:</h4>
-                        <div class="code-box" style="font-size: 16px; font-weight: bold; color: #34d399; margin-bottom: 14px;">${randomPass}</div>
-                        <button class="btn" style="width: 100%; justify-content: center;" onclick="switchTab('gen')">🎲 Generate Another</button>
-                    </div>`;
-            } else if (tab === 'settings') {
-                btns[3].classList.add('active');
-                title.textContent = 'Security Settings';
-                body.innerHTML = `
-                    <div style="display: flex; flex-direction: column; gap: 10px; font-size: 13px;">
-                        <div style="background: #131b2e; padding: 12px; border-radius: 12px; display: flex; justify-content: space-between;">
-                            <span>👆 Biometric Keystore</span>
-                            <span style="color: var(--accent); font-weight: bold;">ENABLED</span>
-                        </div>
-                        <div style="background: #131b2e; padding: 12px; border-radius: 12px; display: flex; justify-content: space-between;">
-                            <span>⏱️ Auto-Lock Vault</span>
-                            <span style="color: #818cf8;">30 SECONDS</span>
-                        </div>
-                        <div style="background: #131b2e; padding: 12px; border-radius: 12px; display: flex; justify-content: space-between;">
-                            <span>🛡️ Anti-Screen Capture</span>
-                            <span style="color: var(--accent); font-weight: bold;">FLAG_SECURE</span>
-                        </div>
+                    <div style="padding: 16px 8px; font-size: 12px; color: var(--muted);">
+                        <div style="margin-bottom: 10px; color: var(--accent); font-weight: 600;">✓ Hash Chain Intact</div>
+                        <p style="line-height: 1.6;">Block #0: Genesis<br>Status: Cryptographically verified<br>Hash: 4a2b91...7f3c</p>
                     </div>`;
             }
         }
 
-        function generatePassword() {
-            const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^&*";
-            let res = "";
-            for (let i = 0; i < 18; i++) {
-                res += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-            return res;
+        function runAttackDemo() {
+            const out = document.getElementById('threatResult');
+            out.innerHTML = "<span style='color: #ef4444; font-weight: 600;'>⚠️ Coordinated Bot Attack Detected!</span><br>Risk Score: <strong>85 / 100</strong><br>Decision: <strong>Anti-Lockout Protection Engaged (Step-Up Auth)</strong>. Legitimate user is not locked out.";
         }
 
-        // Simulate Botnet attack
-        function simulateAttack() {
-            const scoreEl = document.getElementById('simScore');
-            const decisionEl = document.getElementById('simDecision');
-            const logEl = document.getElementById('simLog');
-            scoreEl.textContent = "85 / 100";
-            scoreEl.style.color = "#ef4444";
-            decisionEl.textContent = "STEP_UP_AUTH (Anti-Lockout)";
-            decisionEl.style.color = "#f59e0b";
-            logEl.textContent = "⚠️ Coordinated attack detected: 5 failures from 3 different IPs within 10 min window! Anti-lockout rule engaged: Trusted device escalated to Step-Up Auth instead of locked out.";
-        }
-
-        // Encrypt Demo
-        function encryptDemo() {
-            const text = document.getElementById('plainInput').value;
-            const output = document.getElementById('cipherOutput');
-            const randomHex = Array.from({length: 32}, () => Math.floor(Math.random()*16).toString(16)).join('');
-            const ivHex = Array.from({length: 16}, () => Math.floor(Math.random()*16).toString(16)).join('');
-            output.innerHTML = `aad: keyfort|entry|ent_${Math.floor(Math.random()*9000+1000)}|v1<br>iv: ${ivHex}<br>ciphertext: ${randomHex}7e2a9b...<br>status: Sealed with AES-256-GCM. Unreadable by server!`;
-        }
-
-        // Initialize on load
-        fetchLedger();
+        checkBackend();
     </script>
 </body>
 </html>

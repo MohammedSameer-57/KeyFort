@@ -1,340 +1,79 @@
-# 🛡️ KeyFort — Zero-Knowledge Password Manager & Threat-Aware Security Platform
+# 🛡️ KeyFort
+
+> **A minimal, zero-knowledge password manager with built-in threat protection.**
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Java-17%2B-orange?style=for-the-badge&logo=openjdk" alt="Java 17+" />
-  <img src="https://img.shields.io/badge/Spring%20Boot-3.2-brightgreen?style=for-the-badge&logo=springboot" alt="Spring Boot 3.2" />
-  <img src="https://img.shields.io/badge/Android-API%2026--34-green?style=for-the-badge&logo=android" alt="Android" />
-  <img src="https://img.shields.io/badge/Gradle-8.10-blue?style=for-the-badge&logo=gradle" alt="Gradle" />
-  <img src="https://img.shields.io/badge/Security-Zero--Knowledge-blueviolet?style=for-the-badge&logo=auth0" alt="Zero-Knowledge" />
-  <img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge" alt="License MIT" />
+  <img src="https://img.shields.io/badge/Java-17-orange?style=flat-square&logo=openjdk" alt="Java 17" />
+  <img src="https://img.shields.io/badge/Spring%20Boot-3.2-brightgreen?style=flat-square&logo=springboot" alt="Spring Boot" />
+  <img src="https://img.shields.io/badge/Android-Native-green?style=flat-square&logo=android" alt="Android" />
+  <img src="https://img.shields.io/badge/Security-Zero--Knowledge-blueviolet?style=flat-square" alt="Zero-Knowledge" />
+  <img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="MIT" />
 </p>
 
 ---
 
-## 📖 Table of Contents
-- [About KeyFort](#-about-keyfort)
-- [Why KeyFort? (Key Features)](#-why-keyfort-key-features)
-- [System Architecture](#-system-architecture)
-- [Project Directory Structure](#-project-directory-structure)
-- [How to Run in Terminal](#-how-to-run-in-terminal)
-  - [Prerequisites](#1-prerequisites)
-  - [Quick Start (One-Click)](#2-quick-start-one-click-launcher)
-  - [Manual Terminal Commands](#3-running-manually-in-terminal)
-  - [Verifying Backend & Audit Ledger](#4-verifying-the-backend-server)
-- [REST API Quick Reference](#-rest-api-quick-reference)
-- [How Security Works (Explained Simply)](#-how-security-works-explained-simply)
-- [Contributing](#-contributing)
-- [License](#-license)
+## 💡 What is KeyFort?
+
+KeyFort is a private digital vault for your passwords where **only you hold the key**. 
+
+Your master password never leaves your device. Everything is encrypted into scrambled ciphertext before syncing to the cloud, meaning even the server cannot read your data.
 
 ---
 
-## 🌟 About KeyFort
+## ✨ Core Features
 
-**KeyFort** is a modern, privacy-first password manager built with pure Java 17, Spring Boot 3, and native Android. 
-
-The idea behind KeyFort is simple: **you should be the only person who can see your passwords.** 
-
-Most online password managers store your data on their servers and promise they won't look. KeyFort takes a different approach called **zero-knowledge architecture**. That means:
-- All encryption and decryption happen strictly on your personal phone or computer.
-- Your master password and unencrypted credentials **never** leave your device.
-- The server only ever sees scrambled, encrypted blocks of text. Even if someone gained full access to the backend database, they would find nothing readable.
-
-On top of this, KeyFort comes with an intelligent **Risk Engine** that watches for suspicious activity (like someone trying to guess passwords from multiple locations) and protects your vault automatically without locking you out of your own account.
+- 🔒 **Zero-Knowledge Privacy** — Data is encrypted on your device with AES-256-GCM. The backend only stores locked ciphertexts.
+- 🛡️ **Threat Defense** — Automatically detects bot attacks and password guessing across multiple IPs.
+- 📜 **Tamper-Proof Ledger** — Every security event is logged in a cryptographically chained audit log.
+- 📱 **Minimal Mobile App** — Clean, distraction-free interface for your passwords and security settings.
 
 ---
 
-## ✨ Why KeyFort? (Key Features)
+## 📁 Project Structure
 
-- 🔒 **True Zero-Knowledge Privacy**  
-  Data is encrypted using industry-standard **AES-256-GCM** and hardened with **PBKDF2 (600,000 iterations)**. Only your master password can unlock your vault.
-
-- 📱 **Sleek Android Experience**  
-  A modern mobile app built with Android Material 3, featuring 4 clean tabs: **Vaults**, **Send**, **Password Generator**, and **Settings**.
-
-- 👆 **Biometric Quick Unlock**  
-  Unlock your vault quickly and securely using your fingerprint or face recognition, powered by Android's Biometric Keystore.
-
-- 🛡️ **Smart Threat Detection & Auto-Rotation**  
-  Detects credential stuffing and bot attacks within a sliding 10-minute window. If suspicious activity occurs, KeyFort automatically schedules a client-side key rotation on your next unlock.
-
-- 🤝 **Anti-Lockout Protection**  
-  Attackers often try to lock you out of your account by spamming wrong passwords. KeyFort recognizes your trusted devices and challenges them with a step-up verification instead of locking you out.
-
-- 📜 **Tamper-Evident Audit Ledger**  
-  Every security event is logged in a cryptographic hash chain (like a lightweight, private blockchain). If anyone tries to modify or delete a past log, the chain breaks immediately and flags the tamper attempt.
-
-- 🔑 **Emergency Recovery Kit**  
-  Generate an offline RSA-3072 recovery key during setup. If you ever lose or forget your master password, you can restore your vault safely.
-
----
-
-## 🏗️ System Architecture
-
-KeyFort is built as a multi-module Gradle project where each layer has a clear and dedicated responsibility:
-
-```mermaid
-flowchart TD
-    subgraph Client ["Client Layer (Android Mobile)"]
-        UI["Material 3 UI (Vaults, Send, Generator, Settings)"]
-        CryptoCoreClient["keyfort-core (Local Encryption & Decryption)"]
-        LocalDB["Room Database (Secure Offline Cache)"]
-        UI <--> CryptoCoreClient
-        CryptoCoreClient <--> LocalDB
-    end
-
-    subgraph Network ["Zero-Knowledge Network Sync"]
-        Sync["Encrypted Blobs Only (Ciphertext + Metadata)"]
-    end
-
-    subgraph Backend ["Server Layer (Spring Boot 3)"]
-        API["REST Controllers (Auth, Vault, Devices, Ledger)"]
-        Risk["Risk & Threat Evaluation Engine"]
-        Ledger["Tamper-Evident Metadata Ledger"]
-        DB[("Database (H2 / PostgreSQL)")]
-        API --> Risk
-        API --> Ledger
-        API --> DB
-    end
-
-    Client <== "HTTPS / REST API" ==> Network
-    Network <== "HTTPS / REST API" ==> Backend
-```
-
-### Module Overview
-
-1. **`keyfort-core`**: The cryptographic engine. Written in pure Java 17 with zero third-party dependencies. It handles master key derivation, AES-256 encryption, threat scoring, and the audit ledger.
-2. **`keyfort-server`**: The backend coordinator built with Spring Boot 3. It stores encrypted vaults, evaluates device trust, and verifies the audit ledger.
-3. **`keyfort-android`**: The native Android application. It interacts directly with `keyfort-core` to perform all cryptographic operations directly on the user's phone.
-
----
-
-## 📁 Project Directory Structure
-
-Here is how the project files and folders are arranged:
-
-```
+```text
 KeyFort/
-├── keyfort-core/                    # Cryptography engine & threat logic (Pure Java 17)
-│   └── src/
-│       ├── main/java/org/keyfort/core/
-│       │   ├── Crypto.java          # AES-256-GCM, PBKDF2 & HKDF encryption
-│       │   ├── Vault.java           # Zero-knowledge vault & entry models
-│       │   ├── ledger/              # Tamper-evident hash-chained audit ledger
-│       │   ├── orchestration/       # Key rotation and access coordination
-│       │   └── risk/                # Sliding-window risk engine & device registry
-│       └── test/                    # Unit tests for crypto, vault & risk engine
-│
-├── keyfort-server/                  # Backend REST API (Spring Boot 3 + JPA)
-│   └── src/
-│       ├── main/java/org/keyfort/server/
-│       │   ├── controller/          # REST endpoints (auth, devices, vault, ledger)
-│       │   ├── service/             # Vault synchronization & risk analysis
-│       │   ├── entity/              # Database entities (storing encrypted blobs)
-│       │   ├── repository/          # Spring Data JPA repositories
-│       │   └── security/            # JWT authentication & request filters
-│       └── test/                    # Full integration tests
-│
-├── keyfort-android/                 # Native Android application (Material 3)
-│   └── src/
-│       └── main/
-│           ├── java/org/keyfort/android/
-│           │   ├── ui/              # App activities, fragments, and dialogs
-│           │   ├── db/              # Room database for encrypted offline cache
-│           │   ├── security/        # Biometric unlock & secure storage
-│           │   ├── generator/       # Customizable password generator
-│           │   └── network/         # HTTP client to sync with backend
-│           └── res/                 # Layouts, themes, drawables, and strings
-│
-├── gradle/                          # Gradle wrapper binaries and settings
-├── START_KEYFORT.bat                # One-click launch script for Windows (CMD)
-├── START_KEYFORT.ps1                # One-click launch script for Windows (PowerShell)
-├── build.gradle                     # Top-level Gradle build file
-├── settings.gradle                  # Subproject declarations
-├── .gitignore                       # Git exclusion rules
-└── README.md                        # Project documentation
+├── keyfort-core/       # Encryption engine & threat detection (Pure Java 17)
+├── keyfort-server/     # Backend REST API (Spring Boot 3 + H2 Database)
+├── keyfort-android/    # Native Android mobile app (Material 3)
+├── preview.html        # Interactive browser preview & control center
+└── START_KEYFORT.bat   # 1-click launcher for Windows
 ```
 
 ---
 
-## 💻 How to Run in Terminal
+## 🚀 How to Run
 
-Follow these simple steps to build and run KeyFort directly from your command line.
+### Option 1: One-Click (Windows)
+Double-click **`START_KEYFORT.bat`** in this folder.
 
-### 1. Prerequisites
+### Option 2: Terminal
+Run this single command:
 
-Before running the project, make sure you have:
-- **Java 17 JDK** or higher installed ([Download JDK 17+](https://adoptium.net/))
-- **Git** installed on your system
-- **Android Studio** or **Android SDK** (if you plan to run the Android app or emulator)
-
-Check that Java is available:
 ```bash
-java -version
+# Windows
+gradlew.bat :keyfort-server:run
+
+# macOS / Linux
+./gradlew :keyfort-server:run
 ```
+
+Once started, open:
+- **Live Audit Ledger:** [http://localhost:8080/ledger/verify](http://localhost:8080/ledger/verify)
+- **Interactive UI Preview:** Double-click **`preview.html`** in your browser.
 
 ---
 
-### 2. Quick Start (One-Click Launcher)
+## 🧪 Running Tests
 
-If you are on Windows and want to launch both the server and Android emulator in one go:
+To verify cryptographic rules and security checks:
 
-**Using Command Prompt:**
-```cmd
-START_KEYFORT.bat
-```
-
-**Using PowerShell:**
-```powershell
-.\START_KEYFORT.ps1
-```
-
----
-
-### 3. Running Manually in Terminal
-
-You can run individual parts of the project using the included Gradle wrapper (`gradlew` on Linux/macOS or `gradlew.bat` on Windows).
-
-#### A. Run All Tests
-To make sure all cryptographic checks, risk engine rules, and server tests pass:
-
-- **Windows:**
-  ```cmd
-  gradlew.bat test
-  ```
-- **macOS / Linux:**
-  ```bash
-  ./gradlew test
-  ```
-
-#### B. Start the Backend Server
-This launches the Spring Boot REST API on port `8080`:
-
-- **Windows:**
-  ```cmd
-  gradlew.bat :keyfort-server:run
-  ```
-- **macOS / Linux:**
-  ```bash
-  ./gradlew :keyfort-server:run
-  ```
-
-Once started, the backend server will be listening at:
-```
-http://localhost:8080
-```
-
-#### C. Build the Android App (Debug APK)
-To compile and assemble the debug Android APK:
-
-- **Windows:**
-  ```cmd
-  gradlew.bat :keyfort-android:assembleDebug
-  ```
-- **macOS / Linux:**
-  ```bash
-  ./gradlew :keyfort-android:assembleDebug
-  ```
-
-The compiled APK file will be saved at:
-```
-keyfort-android/build/outputs/apk/debug/keyfort-android-debug.apk
-```
-
-#### D. Install & Launch on an Android Device / Emulator
-Make sure your device or emulator is running and detected:
 ```bash
-adb devices
+gradlew.bat test       # Windows
+./gradlew test         # macOS / Linux
 ```
-
-Install the newly built APK:
-```bash
-adb install -r keyfort-android/build/outputs/apk/debug/keyfort-android-debug.apk
-```
-
-Launch KeyFort on your device screen:
-```bash
-adb shell am start -n org.keyfort.android/.ui.UnlockActivity
-```
-
----
-
-### 4. Verifying the Backend Server
-
-Once the server is running, you can verify its status and inspect the tamper-proof ledger:
-
-#### In Your Web Browser:
-Open this URL in Microsoft Edge, Chrome, or any browser:
-```
-http://localhost:8080/ledger/verify
-```
-
-#### In Your Terminal (using `curl`):
-```bash
-curl -X GET http://localhost:8080/ledger/verify
-```
-
-#### Expected Response:
-```json
-{
-  "valid": true,
-  "blockCount": 1,
-  "message": "Ledger integrity verified successfully."
-}
-```
-
----
-
-## 📡 REST API Quick Reference
-
-| Method | Endpoint | Description |
-|:-------|:---------|:------------|
-| `POST` | `/auth/register` | Register a new user account with initial encrypted vault payload |
-| `POST` | `/auth/login` | Authenticate user and receive a secure JWT session token |
-| `GET`  | `/vault` | Download the user's latest encrypted vault ciphertext |
-| `POST` | `/vault/sync` | Upload updated vault ciphertext (after adding/editing entries) |
-| `POST` | `/devices/register` | Register a new device with device fingerprint & public key |
-| `GET`  | `/devices` | List registered devices and their current trust status |
-| `POST` | `/events/access` | Submit an access attempt event to trigger risk analysis |
-| `GET`  | `/ledger/verify` | Verify the cryptographic integrity of the audit hash chain |
-
----
-
-## 🔐 How Security Works (Explained Simply)
-
-Here is a straightforward look at what makes KeyFort secure:
-
-1. **Your Master Password Creates the Master Key**  
-   When you enter your master password, KeyFort runs it through **PBKDF2 with 600,000 rounds** and a unique random salt. This creates a Key Encryption Key (KEK). The number of rounds makes it computationally impossible for hackers to guess your password using brute force.
-
-2. **Every Password Has Its Own Subkey**  
-   Instead of using one single key for everything, KeyFort uses **HKDF (HMAC-based Key Derivation Function)** to generate an independent encryption key for every single password entry in your vault.
-
-3. **Smart Threat Defense Without the Headache**  
-   If an automated bot tries to guess your password from multiple different IP addresses, KeyFort detects this distributed pattern within a 10-minute sliding window. The server flags the vault for **key rotation**, so your phone automatically re-encrypts everything with fresh keys the next time you open the app.
-
-4. **Guaranteed Anti-Lockout**  
-   Malicious actors sometimes try to trigger account lockouts on purpose to disrupt you. KeyFort protects against this: devices that are marked as **Trusted** are never locked out automatically. Instead, they are prompted for additional confirmation (Step-Up Auth).
-
-5. **Tamper-Proof Audit Log**  
-   Every login, sync, and security action is recorded in a hash chain:
-   $$\text{Block Hash} = \text{SHA256}(\text{Index} + \text{Timestamp} + \text{Event} + \text{Previous Hash})$$
-   Because every block points back to the previous one, no one can change a log entry without invalidating the entire chain.
-
----
-
-## 🤝 Contributing
-
-Contributions, bug reports, and suggestions are warmly welcome!
-1. Fork this repository.
-2. Create a new feature branch (`git checkout -b feature/amazing-feature`).
-3. Commit your changes (`git commit -m "Add amazing feature"`).
-4. Push to the branch (`git push origin feature/amazing-feature`).
-5. Open a Pull Request.
-
-Please see [CONTRIBUTING.md](CONTRIBUTING.md) for more details.
 
 ---
 
 ## 📄 License
-
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+Licensed under the [MIT License](LICENSE).
