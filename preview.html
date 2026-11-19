@@ -3,25 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KeyFort — Minimal Preview</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>KeyFort — Simple, Private Password Manager</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #09090b;
-            --card: #141417;
-            --card-hover: #1c1c21;
-            --border: #27272a;
-            --text: #fafafa;
-            --muted: #a1a1aa;
-            --accent: #22c55e;
-            --primary: #3b82f6;
+            --bg: #0d1117;
+            --surface: #161b22;
+            --surface-hover: #1f242c;
+            --border: #30363d;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --accent: #10b981;
+            --text: #f0f6fc;
+            --muted: #8b949e;
+            --danger: #f85149;
         }
 
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Inter', -apple-system, sans-serif;
+            font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
         }
 
         body {
@@ -30,20 +32,16 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            padding: 24px 16px;
         }
 
-        /* Top Bar */
-        .top-bar {
-            width: 100%;
-            max-width: 900px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding-bottom: 24px;
+        /* Top Header */
+        header {
+            background: var(--surface);
             border-bottom: 1px solid var(--border);
-            margin-bottom: 32px;
+            padding: 14px 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
 
         .brand {
@@ -52,452 +50,636 @@
             gap: 10px;
         }
 
+        .brand-icon {
+            font-size: 22px;
+        }
+
         .brand h1 {
             font-size: 18px;
             font-weight: 700;
             letter-spacing: -0.3px;
         }
 
-        .status-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 12px;
-            color: var(--muted);
-            background: var(--card);
-            border: 1px solid var(--border);
-            padding: 6px 12px;
-            border-radius: 20px;
-        }
-
-        .dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: var(--accent);
-            box-shadow: 0 0 6px var(--accent);
-        }
-
-        /* Main Layout */
-        .container {
-            width: 100%;
-            max-width: 900px;
-            display: grid;
-            grid-template-columns: 360px 1fr;
-            gap: 32px;
-            align-items: start;
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* Minimal Phone Shell */
-        .phone {
-            width: 100%;
-            height: 620px;
-            background: #000000;
-            border: 1px solid var(--border);
-            border-radius: 36px;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
-        }
-
-        .phone-header {
-            padding: 24px 20px 14px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .phone-header h2 {
-            font-size: 16px;
-            font-weight: 600;
-        }
-
-        .search-box {
-            margin: 0 16px 14px;
-            background: #121214;
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 9px 12px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--muted);
-            font-size: 13px;
-        }
-
-        .phone-content {
-            flex: 1;
-            padding: 0 16px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        /* Entry Cards */
-        .item {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            padding: 12px 14px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
-            transition: all 0.15s ease;
-        }
-
-        .item:hover {
-            background: var(--card-hover);
-            border-color: #3f3f46;
-        }
-
-        .item-left {
+        .user-controls {
             display: flex;
             align-items: center;
             gap: 12px;
         }
 
-        .icon {
-            width: 34px;
-            height: 34px;
+        .status-badge {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--accent);
+            border: 1px solid rgba(16, 185, 129, 0.25);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--accent);
+        }
+
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 16px;
             border-radius: 10px;
-            background: #202025;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn-secondary {
+            background: var(--surface-hover);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: #282f3a;
+        }
+
+        /* Unlock Screen */
+        #unlockScreen {
+            flex: 1;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 14px;
-            font-weight: 600;
+            padding: 24px;
         }
 
-        .item-info h4 {
-            font-size: 13px;
-            font-weight: 600;
-        }
-
-        .item-info p {
-            font-size: 11px;
-            color: var(--muted);
-            margin-top: 1px;
-        }
-
-        .copy-pill {
-            font-size: 11px;
-            color: var(--muted);
-            background: #1f1f24;
-            padding: 4px 8px;
-            border-radius: 6px;
+        .unlock-card {
+            background: var(--surface);
             border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 40px;
+            max-width: 420px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
         }
 
-        /* Minimal Phone Nav */
-        .nav {
-            background: #09090b;
-            border-top: 1px solid var(--border);
-            padding: 12px 16px;
-            display: flex;
-            justify-content: space-around;
+        .unlock-icon {
+            font-size: 44px;
+            margin-bottom: 16px;
         }
 
-        .nav-item {
-            background: none;
-            border: none;
+        .unlock-card h2 {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .unlock-card p {
+            font-size: 13px;
             color: var(--muted);
-            font-size: 11px;
-            font-weight: 500;
-            cursor: pointer;
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+
+        .input-field {
+            width: 100%;
+            background: #0b0f17;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 16px;
+            color: white;
+            font-size: 14px;
+            margin-bottom: 16px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .input-field:focus {
+            border-color: var(--primary);
+        }
+
+        /* App Dashboard */
+        #appDashboard {
+            flex: 1;
+            display: none;
+            max-width: 1100px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 28px 20px;
+        }
+
+        .dashboard-header {
             display: flex;
-            flex-direction: column;
+            justify-content: space-between;
             align-items: center;
-            gap: 4px;
-        }
-
-        .nav-item.active {
-            color: var(--text);
-        }
-
-        /* Minimal Right Side Cards */
-        .side-col {
-            display: flex;
-            flex-direction: column;
+            margin-bottom: 24px;
             gap: 16px;
         }
 
-        .card {
-            background: var(--card);
+        .search-bar {
+            flex: 1;
+            max-width: 480px;
+            position: relative;
+        }
+
+        .search-bar input {
+            width: 100%;
+            background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 18px;
-            padding: 20px;
+            border-radius: 12px;
+            padding: 10px 16px 10px 38px;
+            color: white;
+            font-size: 13px;
+            outline: none;
         }
 
-        .card h3 {
+        .search-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
             font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 6px;
+            color: var(--muted);
         }
 
-        .card p {
+        /* Navigation Tabs */
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 12px;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        /* Password Cards Grid */
+        .vault-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 16px;
+        }
+
+        .password-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            transition: transform 0.15s, border-color 0.15s;
+        }
+
+        .password-card:hover {
+            border-color: #484f58;
+            transform: translateY(-2px);
+        }
+
+        .card-top {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .site-logo {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: #21262d;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .site-info h3 {
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .site-info p {
             font-size: 12px;
             color: var(--muted);
-            line-height: 1.5;
-            margin-bottom: 14px;
         }
 
-        .code {
-            background: #09090b;
-            border: 1px solid var(--border);
+        .card-middle {
+            background: #0b0f17;
+            border: 1px solid #21262d;
             border-radius: 10px;
-            padding: 12px;
-            font-family: monospace;
-            font-size: 12px;
-            color: #38bdf8;
-            overflow-x: auto;
+            padding: 10px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        .btn-action {
-            background: #27272a;
+        .password-display {
+            font-family: monospace;
+            font-size: 14px;
+            letter-spacing: 1px;
+            color: #79c0ff;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .action-btn {
+            background: #21262d;
+            border: 1px solid var(--border);
             color: var(--text);
-            border: 1px solid #3f3f46;
-            padding: 8px 14px;
+            padding: 6px 12px;
             border-radius: 8px;
             font-size: 12px;
-            font-weight: 500;
             cursor: pointer;
-            transition: all 0.15s;
+            transition: background 0.15s;
         }
 
-        .btn-action:hover {
-            background: #3f3f46;
+        .action-btn:hover {
+            background: #30363d;
+        }
+
+        .delete-btn:hover {
+            color: var(--danger);
+            border-color: var(--danger);
+        }
+
+        /* Modal Dialog */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .modal {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 28px;
+            max-width: 440px;
+            width: 100%;
+        }
+
+        .modal h3 {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        /* Generator View */
+        #generatorView {
+            display: none;
+            max-width: 500px;
+            margin: 0 auto;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 28px;
+            text-align: center;
+        }
+
+        .gen-display {
+            background: #0b0f17;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            font-family: monospace;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--accent);
+            margin: 16px 0;
+            word-break: break-all;
+        }
+
+        /* Toast notification */
+        #toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #10b981;
+            color: #042f1a;
+            font-weight: 600;
+            font-size: 13px;
+            padding: 10px 20px;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+            display: none;
+            animation: fadeIn 0.2s;
+            z-index: 200;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
 <body>
 
     <!-- Header -->
-    <div class="top-bar">
+    <header>
         <div class="brand">
-            <span style="font-size: 20px;">🛡️</span>
-            <h1>KeyFort Minimal</h1>
+            <span class="brand-icon">🛡️</span>
+            <h1>KeyFort</h1>
         </div>
-        <div class="status-pill">
-            <div class="dot"></div>
-            <span id="backendStatus">Checking backend...</span>
+        <div class="user-controls">
+            <div class="status-badge">
+                <div class="status-dot"></div>
+                <span>Vault Encrypted</span>
+            </div>
+            <button class="btn btn-secondary" id="lockBtn" style="display: none;" onclick="lockVault()">🔒 Lock</button>
+        </div>
+    </header>
+
+    <!-- 1. Unlock Screen (First thing you see) -->
+    <div id="unlockScreen">
+        <div class="unlock-card">
+            <div class="unlock-icon">🔐</div>
+            <h2>Unlock Your Vault</h2>
+            <p>Welcome back! Enter your master password to access your accounts.</p>
+            <input type="password" id="masterPassInput" class="input-field" placeholder="Enter master password..." value="my-secret-password">
+            <button class="btn" style="width: 100%; justify-content: center; padding: 12px;" onclick="unlockVault()">Unlock Vault</button>
+            <div style="font-size: 11px; color: var(--muted); margin-top: 14px;">
+                💡 <em>Click "Unlock Vault" to explore your vault.</em>
+            </div>
         </div>
     </div>
 
-    <div class="container">
+    <!-- 2. Main Dashboard (After Unlock) -->
+    <div id="appDashboard">
         
-        <!-- Mobile Phone Preview -->
-        <div class="phone">
-            <div class="phone-header">
-                <h2 id="phoneTitle">Vault</h2>
-                <span style="font-size: 11px; color: var(--accent); font-weight: 600;">AES-256</span>
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" id="tabVault" onclick="showTab('vault')">🔑 Passwords</button>
+            <button class="tab-btn" id="tabGen" onclick="showTab('gen')">⚡ Generator</button>
+        </div>
+
+        <!-- Vault Tab Content -->
+        <div id="vaultContent">
+            <div class="dashboard-header">
+                <div class="search-bar">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="searchInput" placeholder="Search passwords (e.g. Google, Netflix)..." oninput="filterPasswords()">
+                </div>
+                <button class="btn" onclick="openAddModal()">+ Add New Password</button>
             </div>
 
-            <div class="search-box">
-                <span>🔍</span>
-                <span>Search vault...</span>
-            </div>
-
-            <div class="phone-content" id="phoneBody">
-                <div class="item" onclick="togglePass(this, 's3cur3#P@ssw0rd!')">
-                    <div class="item-left">
-                        <div class="icon" style="color: #ef4444;">G</div>
-                        <div class="item-info">
-                            <h4>Google</h4>
-                            <p>sameer@gmail.com</p>
-                        </div>
-                    </div>
-                    <span class="copy-pill">Tap to view</span>
-                </div>
-
-                <div class="item" onclick="togglePass(this, 'ghp_secret_token_948')">
-                    <div class="item-left">
-                        <div class="icon">git</div>
-                        <div class="item-info">
-                            <h4>GitHub</h4>
-                            <p>MohammedSameer-57</p>
-                        </div>
-                    </div>
-                    <span class="copy-pill">Tap to view</span>
-                </div>
-
-                <div class="item" onclick="togglePass(this, 'N3tfl!x_Pass#2026')">
-                    <div class="item-left">
-                        <div class="icon" style="color: #e50914;">N</div>
-                        <div class="item-info">
-                            <h4>Netflix</h4>
-                            <p>family@home</p>
-                        </div>
-                    </div>
-                    <span class="copy-pill">Tap to view</span>
-                </div>
-
-                <div class="item" onclick="togglePass(this, 'B@nk#Pin_8831!')">
-                    <div class="item-left">
-                        <div class="icon" style="color: #10b981;">$</div>
-                        <div class="item-info">
-                            <h4>Banking</h4>
-                            <p>**** 9182</p>
-                        </div>
-                    </div>
-                    <span class="copy-pill">Tap to view</span>
-                </div>
-            </div>
-
-            <!-- Bottom Nav -->
-            <div class="nav">
-                <button class="nav-item active" onclick="setTab('vault')">
-                    <span>🛡️</span>Vault
-                </button>
-                <button class="nav-item" onclick="setTab('gen')">
-                    <span>⚡</span>Generator
-                </button>
-                <button class="nav-item" onclick="setTab('ledger')">
-                    <span>📜</span>Audit Log
-                </button>
+            <!-- Passwords List -->
+            <div class="vault-grid" id="vaultGrid">
+                <!-- Cards will render here -->
             </div>
         </div>
 
-        <!-- Minimal Side Panels -->
-        <div class="side-col">
+        <!-- Generator Tab Content -->
+        <div id="generatorView">
+            <div style="font-size: 32px; margin-bottom: 8px;">⚡</div>
+            <h3>Strong Password Generator</h3>
+            <p style="font-size: 12px; color: var(--muted);">Generate strong, unique passwords that hackers cannot guess.</p>
             
-            <!-- Live Backend Card -->
-            <div class="card">
-                <h3>Live Backend Status</h3>
-                <p>Real-time response from your running server (<code>localhost:8080/ledger/verify</code>):</p>
-                <div class="code" id="liveLedgerCode">Loading...</div>
+            <div class="gen-display" id="generatedPassword">K8#mQ2$pL9@vR4!w</div>
+            
+            <div style="display: flex; gap: 10px; justify-content: center; margin-top: 16px;">
+                <button class="btn" onclick="generateNewPassword()">🎲 Generate New</button>
+                <button class="btn btn-secondary" onclick="copyText(document.getElementById('generatedPassword').textContent, 'Generated password copied!')">📋 Copy Password</button>
             </div>
-
-            <!-- Threat Engine Card -->
-            <div class="card">
-                <h3>Threat Defense Demo</h3>
-                <p>Simulate a distributed credential attack across multiple IPs:</p>
-                <button class="btn-action" onclick="runAttackDemo()">🚨 Test Bot Defense</button>
-                <div id="threatResult" style="margin-top: 12px; font-size: 12px; color: var(--muted); line-height: 1.5;">
-                    Status: Normal traffic. Zero-knowledge encryption active.
-                </div>
-            </div>
-
-            <!-- Architecture Info -->
-            <div class="card">
-                <h3>Super-Simple Architecture</h3>
-                <p>
-                    • <strong>Phone (Android):</strong> Encrypts all passwords on-device.<br>
-                    • <strong>Cloud (Spring Boot):</strong> Only receives encrypted ciphertexts.<br>
-                    • <strong>Audit Ledger:</strong> Cryptographic SHA-256 chain guarantees logs cannot be altered.
-                </p>
-            </div>
-
         </div>
 
     </div>
+
+    <!-- Add Password Modal -->
+    <div class="modal-overlay" id="addModal">
+        <div class="modal">
+            <h3>Add New Password</h3>
+            <label style="font-size: 12px; color: var(--muted); margin-bottom: 4px; display: block;">Service / Website Name</label>
+            <input type="text" id="newSite" class="input-field" placeholder="e.g. Amazon, Twitter, Bank">
+            
+            <label style="font-size: 12px; color: var(--muted); margin-bottom: 4px; display: block;">Username or Email</label>
+            <input type="text" id="newUser" class="input-field" placeholder="e.g. sameer@gmail.com">
+            
+            <label style="font-size: 12px; color: var(--muted); margin-bottom: 4px; display: block;">Password</label>
+            <div style="display: flex; gap: 8px;">
+                <input type="text" id="newPass" class="input-field" placeholder="Password" style="margin-bottom: 0;">
+                <button class="btn btn-secondary" type="button" onclick="document.getElementById('newPass').value = makeRandomPass()">⚡</button>
+            </div>
+
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" onclick="closeAddModal()">Cancel</button>
+                <button class="btn" onclick="saveNewPassword()">Save Password</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast">Copied to clipboard!</div>
 
     <script>
-        // Check live backend
-        async function checkBackend() {
-            const statusPill = document.getElementById('backendStatus');
-            const codeBox = document.getElementById('liveLedgerCode');
-            try {
-                const res = await fetch('http://localhost:8080/ledger/verify');
-                const json = await res.json();
-                statusPill.textContent = 'Server Online';
-                codeBox.textContent = JSON.stringify(json, null, 2);
-            } catch (err) {
-                statusPill.textContent = 'Server Offline';
-                codeBox.textContent = 'Start server with: .\\gradlew.bat :keyfort-server:run';
-            }
+        // Sample Vault Data
+        let vault = [
+            { id: 1, site: "Google Workspace", user: "sameer@gmail.com", pass: "s3cur3#P@ssw0rd!2026", logo: "G", color: "#ea4335" },
+            { id: 2, site: "GitHub Account", user: "MohammedSameer-57", pass: "ghp_TokenSecr3t_9921", logo: "git", color: "#f0f6fc" },
+            { id: 3, site: "Netflix Family", user: "sameer.stream@home.net", pass: "N3tfl!x_B!ng3#2026", logo: "N", color: "#e50914" },
+            { id: 4, site: "Spotify Music", user: "sameer.music@gmail.com", pass: "Sp0t!fy#Tr@cks_882", logo: "♫", color: "#1db954" }
+        ];
+
+        // Unlock Action
+        function unlockVault() {
+            document.getElementById('unlockScreen').style.display = 'none';
+            document.getElementById('appDashboard').style.display = 'block';
+            document.getElementById('lockBtn').style.display = 'inline-flex';
+            renderVault();
+            showToast("Vault unlocked successfully!");
         }
 
-        // Tap to reveal
-        function togglePass(card, pass) {
-            const pill = card.querySelector('.copy-pill');
-            if (pill.textContent.startsWith('•')) {
-                pill.textContent = 'Tap to view';
-                pill.style.color = 'var(--muted)';
+        // Lock Action
+        function lockVault() {
+            document.getElementById('unlockScreen').style.display = 'flex';
+            document.getElementById('appDashboard').style.display = 'none';
+            document.getElementById('lockBtn').style.display = 'none';
+            showToast("Vault locked.");
+        }
+
+        // Render Password Cards
+        function renderVault(filter = "") {
+            const grid = document.getElementById('vaultGrid');
+            grid.innerHTML = "";
+
+            const items = vault.filter(v => 
+                v.site.toLowerCase().includes(filter.toLowerCase()) || 
+                v.user.toLowerCase().includes(filter.toLowerCase())
+            );
+
+            if (items.length === 0) {
+                grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--muted); padding: 40px;">No accounts found matching "${filter}".</div>`;
+                return;
+            }
+
+            items.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'password-card';
+                card.innerHTML = `
+                    <div class="card-top">
+                        <div class="site-logo" style="color: ${item.color}">${item.logo}</div>
+                        <div class="site-info">
+                            <h3>${item.site}</h3>
+                            <p>${item.user}</p>
+                        </div>
+                    </div>
+                    <div class="card-middle">
+                        <span class="password-display" id="pass-${item.id}">••••••••••••</span>
+                        <button class="action-btn" onclick="toggleSecret(${item.id}, '${item.pass}')">👁️ Peek</button>
+                    </div>
+                    <div class="card-actions">
+                        <button class="action-btn" onclick="copyText('${item.user}', 'Username copied!')">📋 Copy User</button>
+                        <button class="action-btn" onclick="copyText('${item.pass}', 'Password copied!')">🔑 Copy Password</button>
+                        <button class="action-btn delete-btn" onclick="deleteEntry(${item.id})">🗑️</button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function toggleSecret(id, pass) {
+            const el = document.getElementById(`pass-${id}`);
+            if (el.textContent === "••••••••••••") {
+                el.textContent = pass;
             } else {
-                pill.textContent = pass;
-                pill.style.color = 'var(--accent)';
+                el.textContent = "••••••••••••";
             }
         }
 
-        // Phone Tabs
-        function setTab(tab) {
-            const title = document.getElementById('phoneTitle');
-            const body = document.getElementById('phoneBody');
-            const btns = document.querySelectorAll('.nav-item');
-            btns.forEach(b => b.classList.remove('active'));
+        function filterPasswords() {
+            const query = document.getElementById('searchInput').value;
+            renderVault(query);
+        }
 
+        // Add New Password Modal
+        function openAddModal() {
+            document.getElementById('newSite').value = "";
+            document.getElementById('newUser').value = "";
+            document.getElementById('newPass').value = makeRandomPass();
+            document.getElementById('addModal').style.display = 'flex';
+        }
+
+        function closeAddModal() {
+            document.getElementById('addModal').style.display = 'none';
+        }
+
+        function saveNewPassword() {
+            const site = document.getElementById('newSite').value.trim();
+            const user = document.getElementById('newUser').value.trim();
+            const pass = document.getElementById('newPass').value.trim();
+
+            if (!site || !pass) {
+                alert("Please enter a website name and password.");
+                return;
+            }
+
+            vault.push({
+                id: Date.now(),
+                site: site,
+                user: user || "user",
+                pass: pass,
+                logo: site.charAt(0).toUpperCase(),
+                color: "#3b82f6"
+            });
+
+            closeAddModal();
+            renderVault();
+            showToast(`Added ${site} to your vault!`);
+        }
+
+        function deleteEntry(id) {
+            vault = vault.filter(v => v.id !== id);
+            renderVault();
+            showToast("Account removed from vault.");
+        }
+
+        // Copy Helper
+        function copyText(text, msg) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast(msg);
+            }).catch(() => {
+                showToast("Copied: " + text);
+            });
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 2200);
+        }
+
+        // Tab Switching
+        function showTab(tab) {
             if (tab === 'vault') {
-                btns[0].classList.add('active');
-                title.textContent = 'Vault';
-                body.innerHTML = `
-                    <div class="item" onclick="togglePass(this, 's3cur3#P@ssw0rd!')">
-                        <div class="item-left">
-                            <div class="icon" style="color: #ef4444;">G</div>
-                            <div class="item-info">
-                                <h4>Google</h4>
-                                <p>sameer@gmail.com</p>
-                            </div>
-                        </div>
-                        <span class="copy-pill">Tap to view</span>
-                    </div>
-                    <div class="item" onclick="togglePass(this, 'ghp_secret_token_948')">
-                        <div class="item-left">
-                            <div class="icon">git</div>
-                            <div class="item-info">
-                                <h4>GitHub</h4>
-                                <p>MohammedSameer-57</p>
-                            </div>
-                        </div>
-                        <span class="copy-pill">Tap to view</span>
-                    </div>
-                    <div class="item" onclick="togglePass(this, 'N3tfl!x_Pass#2026')">
-                        <div class="item-left">
-                            <div class="icon" style="color: #e50914;">N</div>
-                            <div class="item-info">
-                                <h4>Netflix</h4>
-                                <p>family@home</p>
-                            </div>
-                        </div>
-                        <span class="copy-pill">Tap to view</span>
-                    </div>`;
-            } else if (tab === 'gen') {
-                btns[1].classList.add('active');
-                title.textContent = 'Generator';
-                const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^&*";
-                let pass = "";
-                for (let i = 0; i < 16; i++) pass += chars.charAt(Math.floor(Math.random() * chars.length));
-                body.innerHTML = `
-                    <div style="padding: 24px 8px; text-align: center;">
-                        <div style="font-size: 11px; color: var(--muted); margin-bottom: 8px;">STRONG PASSWORD</div>
-                        <div class="code" style="font-size: 15px; margin-bottom: 16px; color: var(--accent);">${pass}</div>
-                        <button class="btn-action" style="width: 100%;" onclick="setTab('gen')">Generate New</button>
-                    </div>`;
-            } else if (tab === 'ledger') {
-                btns[2].classList.add('active');
-                title.textContent = 'Audit Log';
-                body.innerHTML = `
-                    <div style="padding: 16px 8px; font-size: 12px; color: var(--muted);">
-                        <div style="margin-bottom: 10px; color: var(--accent); font-weight: 600;">✓ Hash Chain Intact</div>
-                        <p style="line-height: 1.6;">Block #0: Genesis<br>Status: Cryptographically verified<br>Hash: 4a2b91...7f3c</p>
-                    </div>`;
+                document.getElementById('tabVault').classList.add('active');
+                document.getElementById('tabGen').classList.remove('active');
+                document.getElementById('vaultContent').style.display = 'block';
+                document.getElementById('generatorView').style.display = 'none';
+            } else {
+                document.getElementById('tabGen').classList.add('active');
+                document.getElementById('tabVault').classList.remove('active');
+                document.getElementById('vaultContent').style.display = 'none';
+                document.getElementById('generatorView').style.display = 'block';
             }
         }
 
-        function runAttackDemo() {
-            const out = document.getElementById('threatResult');
-            out.innerHTML = "<span style='color: #ef4444; font-weight: 600;'>⚠️ Coordinated Bot Attack Detected!</span><br>Risk Score: <strong>85 / 100</strong><br>Decision: <strong>Anti-Lockout Protection Engaged (Step-Up Auth)</strong>. Legitimate user is not locked out.";
+        // Generator Logic
+        function makeRandomPass() {
+            const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^&*";
+            let pass = "";
+            for (let i = 0; i < 16; i++) {
+                pass += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return pass;
         }
 
-        checkBackend();
+        function generateNewPassword() {
+            document.getElementById('generatedPassword').textContent = makeRandomPass();
+        }
     </script>
 </body>
 </html>
