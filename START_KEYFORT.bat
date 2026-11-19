@@ -6,6 +6,13 @@ echo ========================================================
 echo            KeyFort Zero-Knowledge Platform
 echo ========================================================
 echo.
+
+:: Free port 8080 if an old process was left running
+for /f "tokens=5" %%a in ('netstat -aon 2^>nul ^| findstr :8080 ^| findstr LISTENING') do (
+    echo [INFO] Freeing port 8080 from previous process (PID: %%a)...
+    taskkill /f /pid %%a >nul 2>&1
+)
+
 echo Starting KeyFort Backend Server on http://localhost:8080 ...
 echo.
 echo Once you see "Started KeyFortServerApplication", open this in your browser:
