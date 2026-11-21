@@ -72,19 +72,44 @@ KeyFort bridges the gap between high-end enterprise ephemeral token systems and 
 
 ---
 
-## 🚀 How to Run & Preview
+## 🚀 Real-World Usage & Deployment
 
-### Option 1: Instant Interactive Simulator (No Install Needed)
-Double-click **`preview.html`** in this folder to open the interactive 4-step live demonstration right in your browser. You can click through:
-- Unlocking the vault.
-- Generating a disposable guest key.
-- Simulating a friend's 1-time login.
-- Watching the real-time automatic key rotation and AES-256-GCM lockdown.
+### 1. 🌐 Live Public Web App (Any Device / Phone / Laptop)
+KeyFort is hosted live via GitHub Pages:
+👉 **[https://mohammedsameer-57.github.io/KeyFort/](https://mohammedsameer-57.github.io/KeyFort/)**
 
-### Option 2: Live Spring Boot Server (Windows)
-1. Double-click **`START_KEYFORT.bat`** (or run `.\START_KEYFORT.ps1` in PowerShell).
-2. Open your browser and navigate to **[http://localhost:8080](http://localhost:8080)**.
-3. Access the full interactive web application backed by Java Spring Boot.
+You can open this URL directly on your phone's browser, share it with a friend on WhatsApp, and test the 4-step Ephemeral Key & Auto-Rotation flow anywhere in the world in real time!
+
+---
+
+### 2. 📱 Native Android Mobile App (`.apk`)
+A native Android application (`keyfort-android`) is built automatically on every push via **GitHub Actions**:
+1. Go to the **[Actions Tab](https://github.com/MohammedSameer-57/KeyFort/actions)** on GitHub.
+2. Select the latest **Build Android APK** workflow run.
+3. Download the **`KeyFort-Mobile-App`** artifact containing `KeyFort-debug.apk`.
+4. Install it directly onto your Android device to run KeyFort natively with Biometric fingerprint authentication.
+
+---
+
+### 3. ⚡ Share Local Server to Your Phone (`SHARE_TO_PHONE.bat`)
+Want to run the backend on your laptop and access it live on your phone right now?
+1. Start the server: double-click **`START_KEYFORT.bat`**.
+2. Double-click **`SHARE_TO_PHONE.bat`**.
+3. It generates an instant, secure public HTTPS link (e.g. `https://xxxx.lhrtunnel.link`). Open that link on your phone (even over 5G/mobile data)!
+
+---
+
+### 4. ☁️ 24/7 Cloud Server Deployment (Render / Railway / Fly.io)
+The backend includes a production-ready multi-stage **`Dockerfile`**:
+1. Connect this GitHub repository to [Render.com](https://render.com) or [Railway.app](https://railway.app).
+2. Choose **Docker** as the runtime.
+3. Render will build and run the Spring Boot server with 100% free hosting and a permanent public HTTPS API!
+
+---
+
+### 5. 💻 Local Developer Mode
+- **Instant Simulator:** Double-click **`preview.html`** in this folder.
+- **Spring Boot Live Backend:** Double-click **`START_KEYFORT.bat`** and visit **[http://localhost:8080](http://localhost:8080)**.
 
 ---
 
@@ -106,8 +131,11 @@ KeyFort/
 ├── keyfort-android/       # Native Android Application (Jetpack Compose & Material 3)
 │   └── BiometricPrompt    # Hardware-backed Android Keystore integration
 │
+├── docs/index.html        # GitHub Pages production deployment entrypoint
 ├── preview.html           # Standalone interactive 4-step security flow simulator
+├── Dockerfile             # Multi-stage container for cloud deployment (Render/Railway)
 ├── START_KEYFORT.bat      # 1-click launcher for Windows
+├── SHARE_TO_PHONE.bat     # 1-click instant public tunnel for mobile testing
 └── START_KEYFORT.ps1      # PowerShell launcher for Windows
 ```
 
