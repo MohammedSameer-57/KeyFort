@@ -1,53 +1,47 @@
-# 🛡️ KeyFort — Simple, Private Password Vault
+# 🛡️ KeyFort — Password Vault & Disposable Guest Passes
 
-> **Remember just one password. Keep all your accounts safe in one private vault.**
+> **Remember just one master password. Share temporary access safely with self-destructing Guest Passes.**
 
 ---
 
 ## 👤 What is KeyFort?
 
-**KeyFort** is a modern personal password manager made for everyday people. 
+**KeyFort** is a modern personal password manager that solves the biggest problem with sharing passwords: **what happens after you share them.**
 
-Instead of writing down passwords on sticky notes or reusing the same weak password for everything, KeyFort keeps all your accounts (Google, Netflix, GitHub, Banking) locked safely inside a single private vault.
-
-### 🔒 Why it's safer than normal apps:
-- **True Privacy:** Your passwords are locked directly on your computer before they are saved.
-- **Zero-Knowledge:** Even if someone hacked the backend server, they would find nothing readable—only locked gibberish. Only **you** have the master key.
+Instead of giving away your real, permanent password (which a friend could write down or take a picture of with a camera), KeyFort lets you create **Disposable Guest Passes** that automatically expire after a set time!
 
 ---
 
-## ✨ Features You'll Love
+## ✨ Standout Features
 
-- 🔑 **Simple Vault:** View, search, and manage all your logins in one clean dashboard.
-- 📋 **1-Click Copy:** Copy your username or password instantly with one tap.
-- ⚡ **Built-In Password Generator:** Create unbreakable 16-character passwords with a single click.
-- 👁️ **Peek or Hide:** Keep passwords hidden with dots (`••••••••`) until you tap Peek.
-- 🔒 **Fast Auto-Lock:** Lock your vault whenever you step away from your computer.
+- ⏱️ **Disposable Guest Passes (New!):** Create temporary passcodes (`30 Mins`, `2 Hours`, `24 Hours`) for Netflix, Wi-Fi, or Google. Once expired, whatever they wrote down is permanently dead!
+- 🚫 **Emergency Kill Switch:** Revoke any active guest pass immediately with 1 click.
+- 🔑 **Simple Vault:** Store and organize all your personal accounts in one clean, encrypted space.
+- 📋 **1-Click Copy:** Instant copy for usernames, passwords, and guest pass links.
+- 🔒 **Zero-Knowledge Privacy:** All permanent passwords are encrypted on your device using AES-256-GCM.
 
 ---
 
-## 🚀 How to Open & Use KeyFort
-
-You don't need any complex setup. Just choose one of the simple options below:
+## 🚀 How to Open & Test KeyFort
 
 ### Option 1: Direct in Your Browser (Instant)
-Double-click **`preview.html`** in this folder to open the full visual password manager app in your browser!
+Double-click **`preview.html`** in this folder to test the full password manager and Disposable Guest Pass system immediately!
 
 ### Option 2: Live Backend Server (Windows)
 1. Double-click **`START_KEYFORT.bat`**.
-2. Open **[http://localhost:8080](http://localhost:8080)** in Microsoft Edge or Chrome.
-3. Click **Unlock Vault** and start saving your passwords!
+2. Open **[http://localhost:8080](http://localhost:8080)** in your browser.
+3. Click **Unlock Vault** and try creating a guest pass!
 
 ---
 
-## 📁 What's Inside
+## 📁 Project Structure
 
 ```text
 KeyFort/
 ├── keyfort-server/    # Spring Boot backend server
 ├── keyfort-android/   # Native Android mobile application
-├── keyfort-core/      # AES-256 encryption engine
-├── preview.html       # Instant visual password manager app
+├── keyfort-core/      # AES-256 encryption engine & risk scoring
+├── preview.html       # Instant visual password manager & guest pass simulator
 └── START_KEYFORT.bat  # 1-click launcher for Windows
 ```
 

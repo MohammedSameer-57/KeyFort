@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KeyFort — Anti-Peeking Password Manager</title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>KeyFort — Password Vault & Disposable Guest Passes</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg: #090d16;
@@ -60,12 +60,6 @@
             font-weight: 700;
         }
 
-        .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
         .btn {
             background: var(--primary);
             color: white;
@@ -91,13 +85,27 @@
 
         .btn-secondary:hover { background: #334155; }
 
+        .btn-warning {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .btn-warning:hover {
+            background: rgba(245, 158, 11, 0.25);
+        }
+
         .btn-danger {
             background: rgba(239, 68, 68, 0.15);
             color: #f87171;
             border: 1px solid rgba(239, 68, 68, 0.3);
         }
 
-        /* SCREEN 1: Master Password Login */
+        .btn-danger:hover {
+            background: rgba(239, 68, 68, 0.3);
+        }
+
+        /* Screen 1: Unlock */
         #screen1 {
             flex: 1;
             display: flex;
@@ -117,23 +125,7 @@
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
         }
 
-        .login-icon {
-            font-size: 48px;
-            margin-bottom: 16px;
-        }
-
-        .login-card h2 {
-            font-size: 22px;
-            font-weight: 700;
-            margin-bottom: 8px;
-        }
-
-        .login-card p {
-            font-size: 13px;
-            color: var(--muted);
-            margin-bottom: 24px;
-            line-height: 1.5;
-        }
+        .login-icon { font-size: 48px; margin-bottom: 16px; }
 
         .input-box {
             width: 100%;
@@ -145,12 +137,11 @@
             font-size: 14px;
             margin-bottom: 16px;
             outline: none;
-            transition: border-color 0.2s;
         }
 
         .input-box:focus { border-color: var(--primary); }
 
-        /* SCREEN 2: The Main Vault Dashboard */
+        /* Screen 2: Dashboard */
         #screen2 {
             flex: 1;
             display: none;
@@ -160,42 +151,34 @@
             padding: 28px 20px;
         }
 
-        .toolbar {
+        /* Nav Pills */
+        .nav-tabs {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 16px;
+            gap: 10px;
             margin-bottom: 24px;
-            flex-wrap: wrap;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 12px;
         }
 
-        .search-box {
-            flex: 1;
-            min-width: 280px;
-            position: relative;
-        }
-
-        .search-box input {
-            width: 100%;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 10px 16px 10px 38px;
-            color: white;
-            font-size: 13px;
-            outline: none;
-        }
-
-        .search-icon {
-            position: absolute;
-            left: 14px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 14px;
+        .nav-tab {
+            background: none;
+            border: none;
             color: var(--muted);
+            font-size: 14px;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
         }
 
-        /* Vault Cards */
+        .nav-tab.active {
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        /* Cards Grid */
         .vault-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -254,33 +237,54 @@
             user-select: none;
         }
 
-        .card-footer {
+        .card-actions {
             display: flex;
             justify-content: space-between;
             align-items: center;
             gap: 8px;
         }
 
-        .btn-share {
-            background: rgba(16, 185, 129, 0.12);
-            color: #34d399;
-            border: 1px solid rgba(16, 185, 129, 0.3);
+        /* Guest Passes Tab View */
+        #guestPassView {
+            display: none;
+        }
+
+        .guest-banner {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(239, 68, 68, 0.08));
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 16px;
+            padding: 18px 24px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .guest-pass-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .pass-code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 16px;
+            font-weight: 700;
+            color: #fbbf24;
+            background: #090d16;
             padding: 6px 12px;
             border-radius: 8px;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 5px;
+            border: 1px solid var(--border);
+            display: inline-block;
+            margin-top: 4px;
         }
 
-        .btn-share:hover {
-            background: rgba(16, 185, 129, 0.25);
-        }
-
-        /* MODAL: 1-Time Self-Destruct Send */
+        /* Modal */
         .modal-bg {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -300,61 +304,30 @@
             padding: 32px;
             max-width: 480px;
             width: 100%;
-            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8);
-            position: relative;
         }
 
-        .burn-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: rgba(239, 68, 68, 0.15);
-            color: #f87171;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            margin-bottom: 12px;
+        .duration-selector {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            margin: 16px 0;
         }
 
-        .timer-bar {
+        .dur-btn {
             background: #090d16;
             border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 14px;
-            margin: 16px 0;
-            text-align: center;
+            color: var(--text);
+            padding: 10px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s;
         }
 
-        .timer-count {
-            font-size: 26px;
-            font-weight: 800;
-            color: #fbbf24;
-            font-family: monospace;
-        }
-
-        .anti-peek-display {
-            background: #000;
-            border: 2px dashed #334155;
-            border-radius: 12px;
-            padding: 18px;
-            text-align: center;
-            margin: 16px 0;
-            position: relative;
-        }
-
-        .peek-blur {
-            filter: blur(8px);
-            user-select: none;
-            transition: filter 0.2s;
-            font-family: monospace;
-            font-size: 16px;
-            color: #38bdf8;
-            font-weight: 700;
-        }
-
-        .peek-revealed {
-            filter: blur(0px) !important;
+        .dur-btn.selected {
+            background: var(--primary);
+            border-color: var(--primary);
         }
 
         /* Toast */
@@ -368,7 +341,6 @@
             font-size: 13px;
             padding: 12px 20px;
             border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
             display: none;
             z-index: 200;
         }
@@ -382,99 +354,112 @@
             <span class="brand-icon">🛡️</span>
             <h1>KeyFort</h1>
         </div>
-        <div class="header-actions">
-            <button class="btn btn-secondary" onclick="toggleAntiPeek()" id="privacyShieldBtn">👁️ Anti-Peeking Shield</button>
-            <button class="btn btn-secondary" id="lockVaultBtn" style="display: none;" onclick="lockVault()">🔒 Lock</button>
+        <div>
+            <button class="btn btn-secondary" id="lockBtn" style="display: none;" onclick="lockVault()">🔒 Lock</button>
         </div>
     </header>
 
-    <!-- SCREEN 1: Master Lock -->
+    <!-- SCREEN 1: Unlock Screen -->
     <div id="screen1">
         <div class="login-card">
             <div class="login-icon">🔐</div>
-            <h2>KeyFort Vault</h2>
-            <p>Enter your Master Password to unlock all your accounts securely.</p>
+            <h2 style="font-size: 22px; font-weight: 700; margin-bottom: 8px;">KeyFort Vault</h2>
+            <p style="font-size: 13px; color: var(--muted); margin-bottom: 24px;">Enter your Master Password to unlock your accounts.</p>
             <input type="password" id="masterPass" class="input-box" placeholder="Master Password" value="password123">
             <button class="btn" style="width: 100%; justify-content: center; padding: 12px;" onclick="unlockVault()">Unlock Vault</button>
-            <div style="font-size: 11px; color: var(--muted); margin-top: 14px;">
-                💡 <em>Click "Unlock Vault" to access your credentials.</em>
-            </div>
         </div>
     </div>
 
-    <!-- SCREEN 2: Vault Dashboard -->
+    <!-- SCREEN 2: Main Dashboard -->
     <div id="screen2">
-        <div class="toolbar">
-            <div class="search-box">
-                <span class="search-icon">🔍</span>
-                <input type="text" id="searchFilter" placeholder="Search accounts (e.g. Google, Netflix)..." oninput="filterCards()">
-            </div>
-            <button class="btn" onclick="openAddModal()">+ Add Account</button>
+        
+        <!-- Navigation Tabs -->
+        <div class="nav-tabs">
+            <button class="nav-tab active" id="tabVault" onclick="switchMainTab('vault')">🔑 My Accounts</button>
+            <button class="nav-tab" id="tabGuest" onclick="switchMainTab('guest')">⏱️ Disposable Guest Passes (<span id="passCount">1</span>)</button>
         </div>
 
-        <div class="vault-grid" id="vaultGrid">
-            <!-- Cards rendered here -->
+        <!-- VAULT CONTENT -->
+        <div id="vaultContent">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <input type="text" id="searchFilter" class="input-box" style="max-width: 380px; margin-bottom: 0;" placeholder="Search accounts (Google, Netflix)..." oninput="filterCards()">
+                <button class="btn" onclick="openAddAccountModal()">+ Add Account</button>
+            </div>
+
+            <div class="vault-grid" id="vaultGrid">
+                <!-- Rendered dynamically -->
+            </div>
         </div>
+
+        <!-- GUEST PASSES CONTENT -->
+        <div id="guestPassView">
+            <div class="guest-banner">
+                <div>
+                    <h3 style="font-size: 16px; margin-bottom: 4px;">⏱️ Why Disposable Guest Passes are Safer</h3>
+                    <p style="font-size: 12px; color: var(--muted); line-height: 1.5;">
+                        You never give away your real permanent password. If your friend writes it down on paper or keeps it in WhatsApp, <strong>it automatically dies once the timer hits zero</strong>!
+                    </p>
+                </div>
+            </div>
+
+            <h4 style="font-size: 14px; color: var(--muted); margin-bottom: 14px;">ACTIVE GUEST PASSES:</h4>
+            <div id="guestPassList">
+                <!-- Active passes render here -->
+            </div>
+
+            <!-- Interactive Friend Simulator -->
+            <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 24px; margin-top: 24px;">
+                <h4 style="font-size: 15px; margin-bottom: 8px;">🎮 Friend's Point-of-View Simulator</h4>
+                <p style="font-size: 12px; color: var(--muted); margin-bottom: 16px;">
+                    Test what happens when someone tries to use an expired or revoked guest pass on a website:
+                </p>
+                <div style="display: flex; gap: 10px; max-width: 480px;">
+                    <input type="text" id="simTestPass" class="input-box" style="margin-bottom: 0;" placeholder="Enter Guest Pass code...">
+                    <button class="btn" onclick="testFriendLogin()">Attempt Login</button>
+                </div>
+                <div id="simResult" style="margin-top: 14px; font-size: 13px; font-weight: 600;"></div>
+            </div>
+        </div>
+
     </div>
 
-    <!-- SCREEN 3 (Modal): 1-Time Self-Destruct Share to Friend -->
-    <div class="modal-bg" id="shareModal">
+    <!-- MODAL: Generate Guest Pass -->
+    <div class="modal-bg" id="guestModal">
         <div class="modal-box">
-            <div class="burn-badge">🔥 1-Time Self-Destruct Link</div>
-            <h3 id="shareTitle" style="font-size: 18px; margin-bottom: 6px;">Share with Friend</h3>
-            <p style="font-size: 12px; color: var(--muted); line-height: 1.5;">
-                This creates a <strong>disposable encrypted one-time passcode</strong>. Even if someone takes a photo of the WhatsApp chat, the password self-destructs and cannot be opened again!
+            <h3 id="modalAccountTitle" style="font-size: 18px; margin-bottom: 6px;">Create Disposable Guest Pass</h3>
+            <p style="font-size: 12px; color: var(--muted); margin-bottom: 16px;">
+                Choose how long this password should stay valid before self-destructing:
             </p>
 
-            <!-- Self-Destruct Timer -->
-            <div class="timer-bar">
-                <div style="font-size: 11px; color: var(--muted); margin-bottom: 4px;">EXPIRES IN</div>
-                <div class="timer-count" id="countdown">60s</div>
-                <div style="font-size: 11px; color: #f87171; margin-top: 4px;">Burns immediately after 1 view</div>
+            <div class="duration-selector">
+                <button class="dur-btn selected" onclick="selectDuration(this, 30)">⏱️ 30 Minutes</button>
+                <button class="dur-btn" onclick="selectDuration(this, 120)">⏱️ 2 Hours</button>
+                <button class="dur-btn" onclick="selectDuration(this, 1440)">⏱️ 24 Hours</button>
             </div>
 
-            <!-- Anti-Camera & Shoulder-Surfing Display -->
-            <div class="anti-peek-display">
-                <div style="font-size: 11px; color: var(--muted); margin-bottom: 8px;">HOLD BUTTON TO PEEK (Auto-hides after 3s)</div>
-                <div class="peek-blur" id="peekSecret">X9#kL2$vM8@qR4!w</div>
-            </div>
+            <label style="font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px;">Friend / Recipient Name</label>
+            <input type="text" id="guestFriendName" class="input-box" placeholder="e.g. Alex (College Friend)">
 
-            <div style="display: flex; gap: 8px; justify-content: center; margin-bottom: 18px;">
-                <button class="btn btn-secondary" onmousedown="revealPeek()" onmouseup="hidePeek()" ontouchstart="revealPeek()" ontouchend="hidePeek()">👁️ Press & Hold to Peek</button>
-            </div>
-
-            <!-- WhatsApp Link Generator -->
-            <div style="background: #090d16; border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 16px;">
-                <div style="font-size: 11px; color: var(--muted); margin-bottom: 4px;">WHATSAPP 1-TIME BURN LINK:</div>
-                <div style="font-family: monospace; font-size: 12px; color: #34d399; word-break: break-all;" id="shareUrlPreview">https://keyfort.link/burn#token-91f82...</div>
-            </div>
-
-            <div style="display: flex; justify-content: flex-end; gap: 10px;">
-                <button class="btn btn-secondary" onclick="closeShareModal()">Done</button>
-                <button class="btn" style="background: #25D366; color: white;" onclick="copyShareLink()">📋 Copy WhatsApp Link</button>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
+                <button class="btn btn-secondary" onclick="closeGuestModal()">Cancel</button>
+                <button class="btn btn-warning" onclick="confirmGenerateGuestPass()">⚡ Generate & Copy Pass</button>
             </div>
         </div>
     </div>
 
-    <!-- Modal: Add New Account -->
-    <div class="modal-bg" id="addModal">
+    <!-- MODAL: Add Account -->
+    <div class="modal-bg" id="addAccountModal">
         <div class="modal-box">
-            <h3 style="font-size: 18px; margin-bottom: 16px;">Add New Account</h3>
-            
-            <label style="font-size: 12px; color: var(--muted); margin-bottom: 4px; display: block;">Website / App Name</label>
-            <input type="text" id="newSite" class="input-box" placeholder="e.g. Amazon, Bank, Instagram">
-            
-            <label style="font-size: 12px; color: var(--muted); margin-bottom: 4px; display: block;">Username or Email</label>
-            <input type="text" id="newUser" class="input-box" placeholder="e.g. sameer@gmail.com">
-            
-            <label style="font-size: 12px; color: var(--muted); margin-bottom: 4px; display: block;">Password</label>
-            <div style="display: flex; gap: 8px; margin-bottom: 16px;">
-                <input type="text" id="newPass" class="input-box" placeholder="Password" style="margin-bottom: 0;">
-                <button class="btn btn-secondary" type="button" onclick="document.getElementById('newPass').value = makeRandomPass()">⚡ Random</button>
-            </div>
+            <h3 style="font-size: 18px; margin-bottom: 14px;">Add New Account</h3>
+            <label style="font-size: 12px; color: var(--muted); margin-bottom: 4px; display: block;">Account Name</label>
+            <input type="text" id="newSiteName" class="input-box" placeholder="e.g. Amazon, Bank">
+            <label style="font-size: 12px; color: var(--muted); margin-bottom: 4px; display: block;">Username / Email</label>
+            <input type="text" id="newUserName" class="input-box" placeholder="e.g. user@gmail.com">
+            <label style="font-size: 12px; color: var(--muted); margin-bottom: 4px; display: block;">Permanent Password</label>
+            <input type="text" id="newPassVal" class="input-box" placeholder="Password">
 
             <div style="display: flex; justify-content: flex-end; gap: 10px;">
-                <button class="btn btn-secondary" onclick="document.getElementById('addModal').style.display='none'">Cancel</button>
+                <button class="btn btn-secondary" onclick="document.getElementById('addAccountModal').style.display='none'">Cancel</button>
                 <button class="btn" onclick="saveNewAccount()">Save Account</button>
             </div>
         </div>
@@ -484,38 +469,40 @@
 
     <script>
         let accounts = [
-            { id: 1, name: "Google Workspace", user: "sameer@gmail.com", pass: "G00gl3#S3cur3_2026", logo: "G", color: "#ea4335" },
-            { id: 2, name: "GitHub Account", user: "MohammedSameer-57", pass: "ghp_TokenS3cr3t_9921", logo: "git", color: "#f8fafc" },
-            { id: 3, name: "Netflix Family", user: "sameer.stream@home.net", pass: "N3tfl!x_Pass#8821", logo: "N", color: "#e50914" },
-            { id: 4, name: "Bank Account", user: "Acc: **** 9182", pass: "B@nk#Pin_9918!", logo: "$", color: "#10b981" }
+            { id: 1, name: "Netflix Family", user: "sameer.stream@home.net", pass: "RealPermanentPass#8821", logo: "N", color: "#e50914" },
+            { id: 2, name: "Google Workspace", user: "sameer@gmail.com", pass: "RealGoogleSecret#2026", logo: "G", color: "#ea4335" },
+            { id: 3, name: "GitHub Account", user: "MohammedSameer-57", pass: "ghp_RealTokenSecret_9918", logo: "git", color: "#f8fafc" },
+            { id: 4, name: "Home Wi-Fi Network", user: "Network: 5G_FastHome", pass: "RealWifiPassword_4481", logo: "📶", color: "#3b82f6" }
         ];
 
-        let timerInterval = null;
-        let timeLeft = 60;
+        let guestPasses = [
+            { id: 101, account: "Netflix Family", recipient: "Alex (Friend)", code: "GUEST-NETFLIX-8921", minutesLeft: 118, status: "ACTIVE" }
+        ];
+
+        let selectedMinutes = 30;
+        let targetAccount = null;
 
         function unlockVault() {
             document.getElementById('screen1').style.display = 'none';
             document.getElementById('screen2').style.display = 'block';
-            document.getElementById('lockVaultBtn').style.display = 'inline-flex';
+            document.getElementById('lockBtn').style.display = 'inline-flex';
             renderAccounts();
+            renderGuestPasses();
             showToast("Vault Unlocked!");
         }
 
         function lockVault() {
             document.getElementById('screen1').style.display = 'flex';
             document.getElementById('screen2').style.display = 'none';
-            document.getElementById('lockVaultBtn').style.display = 'none';
+            document.getElementById('lockBtn').style.display = 'none';
             showToast("Vault Locked.");
         }
 
-        function renderAccounts(query = "") {
+        function renderAccounts(filter = "") {
             const grid = document.getElementById('vaultGrid');
             grid.innerHTML = "";
 
-            const filtered = accounts.filter(a => 
-                a.name.toLowerCase().includes(query.toLowerCase()) || 
-                a.user.toLowerCase().includes(query.toLowerCase())
-            );
+            const filtered = accounts.filter(a => a.name.toLowerCase().includes(filter.toLowerCase()));
 
             filtered.forEach(acc => {
                 const card = document.createElement('div');
@@ -532,14 +519,11 @@
                         <span class="secret-dots" id="pass-${acc.id}">••••••••••••</span>
                         <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px;" onclick="togglePeek(${acc.id}, '${acc.pass}')">👁️ Peek</button>
                     </div>
-                    <div class="card-footer">
-                        <button class="btn-share" onclick="openShareModal('${acc.name}', '${acc.pass}')">
-                            📤 Share to Friend
+                    <div class="card-actions">
+                        <button class="btn btn-warning" onclick="openGuestPassModal('${acc.name}')">
+                            ⏱️ Create Guest Pass
                         </button>
-                        <div style="display: flex; gap: 6px;">
-                            <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px;" onclick="copyText('${acc.pass}', 'Password copied!')">🔑 Copy</button>
-                            <button class="btn btn-danger" style="padding: 6px 10px; font-size: 12px;" onclick="deleteAccount(${acc.id})">🗑️</button>
-                        </div>
+                        <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" onclick="copyText('${acc.pass}', 'Permanent password copied')">🔑 Copy</button>
                     </div>
                 `;
                 grid.appendChild(card);
@@ -550,8 +534,7 @@
             const el = document.getElementById(`pass-${id}`);
             if (el.textContent === "••••••••••••") {
                 el.textContent = pass;
-                // Auto-hide after 5 seconds to prevent cameras from peeking
-                setTimeout(() => { el.textContent = "••••••••••••"; }, 5000);
+                setTimeout(() => { el.textContent = "••••••••••••"; }, 4000);
             } else {
                 el.textContent = "••••••••••••";
             }
@@ -561,119 +544,152 @@
             renderAccounts(document.getElementById('searchFilter').value);
         }
 
-        // 1-Time Self-Destruct Share Modal
-        function openShareModal(name, pass) {
-            document.getElementById('shareTitle').textContent = `Send ${name} to Friend`;
-            
-            // Generate a randomized, unguessable one-time token
-            const randomToken = makeRandomPass();
-            document.getElementById('peekSecret').textContent = pass;
-            document.getElementById('shareUrlPreview').textContent = `https://keyfort.link/burn#key-${randomToken.substring(0,8)}...`;
-            
-            document.getElementById('shareModal').style.display = 'flex';
-
-            // Start 60-Second Countdown
-            timeLeft = 60;
-            document.getElementById('countdown').textContent = `${timeLeft}s`;
-            clearInterval(timerInterval);
-            timerInterval = setInterval(() => {
-                timeLeft--;
-                document.getElementById('countdown').textContent = `${timeLeft}s`;
-                if (timeLeft <= 0) {
-                    clearInterval(timerInterval);
-                    document.getElementById('countdown').textContent = "EXPIRED (BURNED)";
-                    document.getElementById('peekSecret').textContent = "•••• (BURNED FROM MEMORY)";
-                }
-            }, 1000);
-        }
-
-        function closeShareModal() {
-            clearInterval(timerInterval);
-            document.getElementById('shareModal').style.display = 'none';
-        }
-
-        let peekTimeout = null;
-        function revealPeek() {
-            const el = document.getElementById('peekSecret');
-            el.classList.add('peek-revealed');
-            clearTimeout(peekTimeout);
-            // Automatically re-blur after 3 seconds so no camera can take a steady photo
-            peekTimeout = setTimeout(() => { hidePeek(); }, 3000);
-        }
-
-        function hidePeek() {
-            document.getElementById('peekSecret').classList.remove('peek-revealed');
-        }
-
-        function copyShareLink() {
-            const url = document.getElementById('shareUrlPreview').textContent;
-            copyText(url, "1-Time Burn Link copied for WhatsApp!");
-        }
-
-        // Anti-Peeking Shield for entire screen
-        let shieldActive = false;
-        function toggleAntiPeek() {
-            shieldActive = !shieldActive;
-            const btn = document.getElementById('privacyShieldBtn');
-            const dots = document.querySelectorAll('.secret-dots');
-            if (shieldActive) {
-                btn.style.background = '#ef4444';
-                btn.style.color = '#fff';
-                btn.textContent = '🛡️ Shield: ACTIVE (Camera Proof)';
-                dots.forEach(d => d.style.filter = 'blur(6px)');
-                showToast("Anti-Peeking Shield Active: All passwords blurred.");
+        function switchMainTab(tab) {
+            if (tab === 'vault') {
+                document.getElementById('tabVault').classList.add('active');
+                document.getElementById('tabGuest').classList.remove('active');
+                document.getElementById('vaultContent').style.display = 'block';
+                document.getElementById('guestPassView').style.display = 'none';
             } else {
-                btn.style.background = '';
-                btn.style.color = '';
-                btn.textContent = '👁️ Anti-Peeking Shield';
-                dots.forEach(d => d.style.filter = 'none');
-                showToast("Anti-Peeking Shield Disabled.");
+                document.getElementById('tabGuest').classList.add('active');
+                document.getElementById('tabVault').classList.remove('active');
+                document.getElementById('vaultContent').style.display = 'none';
+                document.getElementById('guestPassView').style.display = 'block';
+                renderGuestPasses();
             }
         }
 
-        // Helpers
-        function openAddModal() {
-            document.getElementById('newSite').value = "";
-            document.getElementById('newUser').value = "";
-            document.getElementById('newPass').value = makeRandomPass();
-            document.getElementById('addModal').style.display = 'flex';
+        function openGuestPassModal(accountName) {
+            targetAccount = accountName;
+            document.getElementById('modalAccountTitle').textContent = `Create Disposable Guest Pass for ${accountName}`;
+            document.getElementById('guestFriendName').value = "";
+            document.getElementById('guestModal').style.display = 'flex';
+        }
+
+        function closeGuestModal() {
+            document.getElementById('guestModal').style.display = 'none';
+        }
+
+        function selectDuration(btn, mins) {
+            document.querySelectorAll('.dur-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            selectedMinutes = mins;
+        }
+
+        function confirmGenerateGuestPass() {
+            const friend = document.getElementById('guestFriendName').value.trim() || "Friend";
+            const randomCode = `GUEST-${targetAccount.substring(0, 4).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+            guestPasses.unshift({
+                id: Date.now(),
+                account: targetAccount,
+                recipient: friend,
+                code: randomCode,
+                minutesLeft: selectedMinutes,
+                status: "ACTIVE"
+            });
+
+            closeGuestModal();
+            updatePassCount();
+            switchMainTab('guest');
+            copyText(randomCode, `Guest Pass ${randomCode} copied for WhatsApp!`);
+        }
+
+        function renderGuestPasses() {
+            const list = document.getElementById('guestPassList');
+            list.innerHTML = "";
+
+            if (guestPasses.length === 0) {
+                list.innerHTML = `<div style="text-align: center; color: var(--muted); padding: 30px;">No active guest passes. Create one from "My Accounts".</div>`;
+                return;
+            }
+
+            guestPasses.forEach(pass => {
+                const item = document.createElement('div');
+                item.className = 'guest-pass-card';
+                const isExpired = pass.status === "EXPIRED" || pass.minutesLeft <= 0;
+                
+                item.innerHTML = `
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <h4 style="font-size: 15px; font-weight: 600;">${pass.account}</h4>
+                            <span style="font-size: 11px; padding: 2px 8px; border-radius: 12px; ${isExpired ? 'background: rgba(239, 68, 68, 0.2); color: #f87171;' : 'background: rgba(16, 185, 129, 0.2); color: #34d399; font-weight: 600;'}">${isExpired ? 'EXPIRED' : 'ACTIVE'}</span>
+                        </div>
+                        <div style="font-size: 12px; color: var(--muted); margin-top: 2px;">Recipient: <strong>${pass.recipient}</strong> • Time remaining: <strong>${isExpired ? '0 mins' : pass.minutesLeft + ' mins'}</strong></div>
+                        <div class="pass-code" style="${isExpired ? 'text-decoration: line-through; opacity: 0.5;' : ''}">${pass.code}</div>
+                    </div>
+                    <div>
+                        ${isExpired ? 
+                            `<span style="font-size: 12px; color: var(--muted);">Pass Inactive</span>` :
+                            `<button class="btn btn-danger" onclick="revokePass(${pass.id})">🚫 Revoke Immediately</button>`
+                        }
+                    </div>
+                `;
+                list.appendChild(item);
+            });
+            updatePassCount();
+        }
+
+        function revokePass(id) {
+            const pass = guestPasses.find(p => p.id === id);
+            if (pass) {
+                pass.status = "EXPIRED";
+                pass.minutesLeft = 0;
+                renderGuestPasses();
+                showToast(`Revoked pass ${pass.code}! It can no longer be used.`);
+            }
+        }
+
+        function updatePassCount() {
+            const active = guestPasses.filter(p => p.status === "ACTIVE" && p.minutesLeft > 0).length;
+            document.getElementById('passCount').textContent = active;
+        }
+
+        // Test Friend Simulator
+        function testFriendLogin() {
+            const entered = document.getElementById('simTestPass').value.trim();
+            const resultBox = document.getElementById('simResult');
+
+            if (!entered) {
+                resultBox.innerHTML = `<span style="color: var(--muted);">Please enter a pass to test.</span>`;
+                return;
+            }
+
+            const found = guestPasses.find(p => p.code.toLowerCase() === entered.toLowerCase());
+
+            if (found && found.status === "ACTIVE" && found.minutesLeft > 0) {
+                resultBox.innerHTML = `<span style="color: #34d399;">✅ ACCESS GRANTED! Pass is valid for ${found.account}. Time remaining: ${found.minutesLeft} mins.</span>`;
+            } else {
+                resultBox.innerHTML = `<span style="color: #ef4444;">❌ ACCESS DENIED! This guest pass is EXPIRED or REVOKED. Writing it down or keeping it in notes will not work.</span>`;
+            }
+        }
+
+        function openAddAccountModal() {
+            document.getElementById('addAccountModal').style.display = 'flex';
         }
 
         function saveNewAccount() {
-            const site = document.getElementById('newSite').value.trim();
-            const user = document.getElementById('newUser').value.trim();
-            const pass = document.getElementById('newPass').value.trim();
+            const name = document.getElementById('newSiteName').value.trim();
+            const user = document.getElementById('newUserName').value.trim();
+            const pass = document.getElementById('newPassVal').value.trim();
 
-            if (!site || !pass) {
-                alert("Please enter a name and password.");
+            if (!name || !pass) {
+                alert("Please fill in account name and password.");
                 return;
             }
 
             accounts.push({
                 id: Date.now(),
-                name: site,
+                name: name,
                 user: user || "personal",
                 pass: pass,
-                logo: site.charAt(0).toUpperCase(),
+                logo: name.charAt(0).toUpperCase(),
                 color: "#3b82f6"
             });
 
-            document.getElementById('addModal').style.display = 'none';
+            document.getElementById('addAccountModal').style.display = 'none';
             renderAccounts();
-            showToast(`Added ${site} to vault!`);
-        }
-
-        function deleteAccount(id) {
-            accounts = accounts.filter(a => a.id !== id);
-            renderAccounts();
-            showToast("Account deleted.");
-        }
-
-        function makeRandomPass() {
-            const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^&*";
-            let pass = "";
-            for (let i = 0; i < 16; i++) pass += chars.charAt(Math.floor(Math.random() * chars.length));
-            return pass;
+            showToast(`Added ${name} to your vault!`);
         }
 
         function copyText(txt, msg) {
@@ -688,7 +704,7 @@
             const toast = document.getElementById('toast');
             toast.textContent = msg;
             toast.style.display = 'block';
-            setTimeout(() => { toast.style.display = 'none'; }, 2200);
+            setTimeout(() => { toast.style.display = 'none'; }, 2400);
         }
     </script>
 </body>
