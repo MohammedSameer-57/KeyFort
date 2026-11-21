@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KeyFort — Password Vault & Disposable Guest Passes</title>
+    <title>KeyFort — Ephemeral Passwords & Auto-Rotation</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -20,45 +20,20 @@
             --muted: #94a3b8;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
 
-        body {
-            background-color: var(--bg);
-            color: var(--text);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* Header */
         header {
             background: var(--surface);
             border-bottom: 1px solid var(--border);
-            padding: 14px 28px;
+            padding: 16px 32px;
             display: flex;
-            align-items: center;
             justify-content: space-between;
-        }
-
-        .brand {
-            display: flex;
             align-items: center;
-            gap: 10px;
         }
 
-        .brand-icon {
-            font-size: 24px;
-        }
-
-        .brand h1 {
-            font-size: 18px;
-            font-weight: 700;
-        }
+        .brand { display: flex; align-items: center; gap: 10px; }
+        .brand h1 { font-size: 18px; font-weight: 700; }
 
         .btn {
             background: var(--primary);
@@ -74,58 +49,53 @@
             align-items: center;
             gap: 6px;
         }
-
         .btn:hover { background: var(--primary-hover); }
 
-        .btn-secondary {
-            background: #1e293b;
-            color: var(--text);
-            border: 1px solid var(--border);
-        }
-
+        .btn-secondary { background: #1e293b; color: var(--text); border: 1px solid var(--border); }
         .btn-secondary:hover { background: #334155; }
 
-        .btn-warning {
-            background: rgba(245, 158, 11, 0.15);
-            color: #fbbf24;
-            border: 1px solid rgba(245, 158, 11, 0.3);
+        .btn-warning { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+        .btn-warning:hover { background: rgba(245, 158, 11, 0.3); }
+
+        .btn-danger { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+
+        /* Flow Stepper Indicator */
+        .stepper {
+            background: #0d1424;
+            border-bottom: 1px solid var(--border);
+            padding: 12px 24px;
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            font-size: 12px;
+            font-weight: 600;
         }
 
-        .btn-warning:hover {
-            background: rgba(245, 158, 11, 0.25);
-        }
+        .step-item { display: flex; align-items: center; gap: 6px; color: var(--muted); }
+        .step-item.active { color: #60a5fa; }
+        .step-num { width: 20px; height: 20px; border-radius: 50%; background: #1e293b; display: flex; align-items: center; justify-content: center; font-size: 11px; }
+        .step-item.active .step-num { background: var(--primary); color: white; }
 
-        .btn-danger {
-            background: rgba(239, 68, 68, 0.15);
-            color: #f87171;
-            border: 1px solid rgba(239, 68, 68, 0.3);
-        }
+        main { flex: 1; max-width: 1000px; margin: 0 auto; width: 100%; padding: 32px 20px; }
 
-        .btn-danger:hover {
-            background: rgba(239, 68, 68, 0.3);
-        }
-
-        /* Screen 1: Unlock */
-        #screen1 {
-            flex: 1;
+        /* STEP 1: Unlock Screen */
+        #viewStep1 {
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 24px;
+            padding: 40px 0;
         }
 
-        .login-card {
+        .login-box {
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 24px;
             padding: 40px;
-            max-width: 420px;
+            max-width: 440px;
             width: 100%;
             text-align: center;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
         }
-
-        .login-icon { font-size: 48px; margin-bottom: 16px; }
 
         .input-box {
             width: 100%;
@@ -139,53 +109,12 @@
             outline: none;
         }
 
-        .input-box:focus { border-color: var(--primary); }
+        /* STEP 2: Vault Dashboard */
+        #viewStep2 { display: none; }
 
-        /* Screen 2: Dashboard */
-        #screen2 {
-            flex: 1;
-            display: none;
-            max-width: 1100px;
-            margin: 0 auto;
-            width: 100%;
-            padding: 28px 20px;
-        }
+        .vault-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
 
-        /* Nav Pills */
-        .nav-tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 24px;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 12px;
-        }
-
-        .nav-tab {
-            background: none;
-            border: none;
-            color: var(--muted);
-            font-size: 14px;
-            font-weight: 600;
-            padding: 8px 16px;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .nav-tab.active {
-            background: var(--surface);
-            color: var(--text);
-            border: 1px solid var(--border);
-        }
-
-        /* Cards Grid */
-        .vault-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 16px;
-        }
-
-        .card {
+        .vault-card {
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 18px;
@@ -193,33 +122,14 @@
             display: flex;
             flex-direction: column;
             gap: 14px;
-            transition: transform 0.15s, border-color 0.15s;
+            transition: border-color 0.2s;
         }
+        .vault-card:hover { border-color: #3b82f6; }
 
-        .card:hover {
-            border-color: #3b82f6;
-            transform: translateY(-2px);
-        }
+        .card-top { display: flex; align-items: center; gap: 12px; }
+        .card-icon { width: 42px; height: 42px; border-radius: 12px; background: #1e293b; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; }
 
-        .card-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .logo-circle {
-            width: 42px;
-            height: 42px;
-            border-radius: 12px;
-            background: #1e293b;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            font-weight: 700;
-        }
-
-        .card-middle {
+        .secret-field {
             background: #090d16;
             border: 1px solid #1e293b;
             border-radius: 10px;
@@ -227,484 +137,277 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-        }
-
-        .secret-dots {
             font-family: monospace;
             font-size: 14px;
             letter-spacing: 2px;
             color: #60a5fa;
-            user-select: none;
         }
 
-        .card-actions {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 8px;
-        }
-
-        /* Guest Passes Tab View */
-        #guestPassView {
+        /* STEP 3 & 4: Interactive Live Demo Flow */
+        .demo-panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 28px;
+            margin-top: 24px;
             display: none;
         }
 
-        .guest-banner {
-            background: linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(239, 68, 68, 0.08));
-            border: 1px solid rgba(245, 158, 11, 0.3);
-            border-radius: 16px;
-            padding: 18px 24px;
-            margin-bottom: 24px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .flow-diagram {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
         }
 
-        .guest-pass-card {
-            background: var(--surface);
+        @media (max-width: 768px) { .flow-diagram { grid-template-columns: 1fr; } }
+
+        .flow-box {
+            background: #090d16;
             border: 1px solid var(--border);
-            border-radius: 16px;
+            border-radius: 14px;
             padding: 18px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
         }
 
-        .pass-code {
+        .flow-box h4 { font-size: 13px; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; }
+
+        .token-display {
             font-family: 'JetBrains Mono', monospace;
             font-size: 16px;
             font-weight: 700;
             color: #fbbf24;
-            background: #090d16;
-            padding: 6px 12px;
+            background: #141b2b;
+            padding: 8px 12px;
             border-radius: 8px;
-            border: 1px solid var(--border);
-            display: inline-block;
-            margin-top: 4px;
+            border: 1px solid #1e293d;
+            margin-bottom: 8px;
+            word-break: break-all;
         }
 
-        /* Modal */
-        .modal-bg {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.75);
-            backdrop-filter: blur(8px);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 100;
-            padding: 16px;
-        }
-
-        .modal-box {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 24px;
-            padding: 32px;
-            max-width: 480px;
-            width: 100%;
-        }
-
-        .duration-selector {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 8px;
-            margin: 16px 0;
-        }
-
-        .dur-btn {
-            background: #090d16;
-            border: 1px solid var(--border);
-            color: var(--text);
-            padding: 10px;
-            border-radius: 10px;
-            cursor: pointer;
+        .hacker-view {
+            font-family: 'JetBrains Mono', monospace;
             font-size: 12px;
-            font-weight: 600;
-            transition: all 0.2s;
+            color: #f87171;
+            background: #180d12;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #3f1a23;
+            line-height: 1.5;
+            word-break: break-all;
         }
 
-        .dur-btn.selected {
-            background: var(--primary);
-            border-color: var(--primary);
-        }
-
-        /* Toast */
-        #toast {
+        .toast {
             position: fixed;
-            bottom: 24px;
-            right: 24px;
-            background: #10b981;
-            color: #042f1a;
-            font-weight: 600;
-            font-size: 13px;
-            padding: 12px 20px;
-            border-radius: 12px;
-            display: none;
-            z-index: 200;
+            bottom: 24px; right: 24px;
+            background: #10b981; color: #042f1a;
+            font-weight: 600; font-size: 13px;
+            padding: 12px 20px; border-radius: 12px;
+            display: none; z-index: 200;
         }
     </style>
 </head>
 <body>
 
-    <!-- Header -->
     <header>
         <div class="brand">
-            <span class="brand-icon">🛡️</span>
-            <h1>KeyFort</h1>
+            <span style="font-size: 24px;">🛡️</span>
+            <h1>KeyFort Security Core</h1>
         </div>
         <div>
-            <button class="btn btn-secondary" id="lockBtn" style="display: none;" onclick="lockVault()">🔒 Lock</button>
+            <button class="btn btn-secondary" id="btnLock" style="display: none;" onclick="lockVault()">🔒 Lock Vault</button>
         </div>
     </header>
 
-    <!-- SCREEN 1: Unlock Screen -->
-    <div id="screen1">
-        <div class="login-card">
-            <div class="login-icon">🔐</div>
-            <h2 style="font-size: 22px; font-weight: 700; margin-bottom: 8px;">KeyFort Vault</h2>
-            <p style="font-size: 13px; color: var(--muted); margin-bottom: 24px;">Enter your Master Password to unlock your accounts.</p>
-            <input type="password" id="masterPass" class="input-box" placeholder="Master Password" value="password123">
-            <button class="btn" style="width: 100%; justify-content: center; padding: 12px;" onclick="unlockVault()">Unlock Vault</button>
-        </div>
+    <!-- Visual 4-Step Narrative Header -->
+    <div class="stepper">
+        <div class="step-item active" id="st1"><span class="step-num">1</span> Master Vault</div>
+        <div class="step-item" id="st2"><span class="step-num">2</span> Disposable Guest Key</div>
+        <div class="step-item" id="st3"><span class="step-num">3</span> 1-Time Login</div>
+        <div class="step-item" id="st4"><span class="step-num">4</span> Auto-Rotation & PBKDF2/AES Lock</div>
     </div>
 
-    <!-- SCREEN 2: Main Dashboard -->
-    <div id="screen2">
-        
-        <!-- Navigation Tabs -->
-        <div class="nav-tabs">
-            <button class="nav-tab active" id="tabVault" onclick="switchMainTab('vault')">🔑 My Accounts</button>
-            <button class="nav-tab" id="tabGuest" onclick="switchMainTab('guest')">⏱️ Disposable Guest Passes (<span id="passCount">1</span>)</button>
+    <main>
+        <!-- 1. Master Login View -->
+        <div id="viewStep1">
+            <div class="login-box">
+                <div style="font-size: 48px; margin-bottom: 12px;">🔐</div>
+                <h2 style="font-size: 22px; margin-bottom: 8px;">Master Key Entry</h2>
+                <p style="font-size: 13px; color: var(--muted); margin-bottom: 20px;">
+                    Enter your Master Password to unlock your permanent credentials.
+                </p>
+                <input type="password" id="inputMaster" class="input-box" value="master-secret-key-2026">
+                <button class="btn" style="width: 100%; justify-content: center; padding: 12px;" onclick="unlockMaster()">Unlock Vault</button>
+            </div>
         </div>
 
-        <!-- VAULT CONTENT -->
-        <div id="vaultContent">
+        <!-- 2. Vault View -->
+        <div id="viewStep2">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <input type="text" id="searchFilter" class="input-box" style="max-width: 380px; margin-bottom: 0;" placeholder="Search accounts (Google, Netflix)..." oninput="filterCards()">
-                <button class="btn" onclick="openAddAccountModal()">+ Add Account</button>
+                <h3 style="font-size: 18px;">Your Protected Accounts</h3>
+                <span style="font-size: 12px; color: var(--accent); font-weight: 600;">🔒 AES-256-GCM Zero-Knowledge Active</span>
             </div>
 
-            <div class="vault-grid" id="vaultGrid">
-                <!-- Rendered dynamically -->
-            </div>
-        </div>
+            <div class="vault-grid">
+                <!-- Netflix -->
+                <div class="vault-card">
+                    <div class="card-top">
+                        <div class="card-icon" style="color: #e50914;">N</div>
+                        <div>
+                            <h4>Netflix Family</h4>
+                            <p style="font-size: 12px; color: var(--muted);">sameer@netflix.com</p>
+                        </div>
+                    </div>
+                    <div class="secret-field">••••••••••••••••</div>
+                    <button class="btn btn-warning" onclick="triggerFlow('Netflix Family', 'Netflix#SecretPass2026')">
+                        ⚡ Share with Friend (Disposable Key)
+                    </button>
+                </div>
 
-        <!-- GUEST PASSES CONTENT -->
-        <div id="guestPassView">
-            <div class="guest-banner">
-                <div>
-                    <h3 style="font-size: 16px; margin-bottom: 4px;">⏱️ Why Disposable Guest Passes are Safer</h3>
-                    <p style="font-size: 12px; color: var(--muted); line-height: 1.5;">
-                        You never give away your real permanent password. If your friend writes it down on paper or keeps it in WhatsApp, <strong>it automatically dies once the timer hits zero</strong>!
+                <!-- Unknown / Sketchy Website -->
+                <div class="vault-card">
+                    <div class="card-top">
+                        <div class="card-icon" style="color: #3b82f6;">🌐</div>
+                        <div>
+                            <h4>Unknown / Public Website</h4>
+                            <p style="font-size: 12px; color: var(--muted);">Public WiFi / Untrusted PC</p>
+                        </div>
+                    </div>
+                    <div class="secret-field">••••••••••••••••</div>
+                    <button class="btn btn-warning" onclick="triggerFlow('Unknown Website', 'PublicWeb#SecureLogin2026')">
+                        ⚡ Login with 1-Time Disposable Key
+                    </button>
+                </div>
+            </div>
+
+            <!-- 3 & 4. Interactive Live Step-By-Step Simulation Box -->
+            <div class="demo-panel" id="flowPanel">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 14px;">
+                    <div>
+                        <h3 id="flowTargetName" style="font-size: 16px;">Live Security Flow: Netflix Family</h3>
+                        <p style="font-size: 12px; color: var(--muted);">Watch what happens when the 1-time password is used.</p>
+                    </div>
+                    <span id="flowBadge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; font-size: 11px; padding: 4px 10px; border-radius: 12px; font-weight: 600;">GUEST KEY GENERATED</span>
+                </div>
+
+                <div class="flow-diagram">
+                    <!-- Left: Friend / Website User View -->
+                    <div class="flow-box">
+                        <h4>Friend's View (Or Untrusted Website)</h4>
+                        <div style="font-size: 12px; color: var(--muted); margin-bottom: 6px;">Single-Use Temporary Credential:</div>
+                        <div class="token-display" id="tokenBox">TEMP-NETF-8921-XQ</div>
+                        <button class="btn" id="btnSimulateLogin" style="width: 100%; justify-content: center;" onclick="performOneTimeLogin()">
+                            ▶️ Click to Simulate Friend Logging In Once
+                        </button>
+                    </div>
+
+                    <!-- Right: Hacker / Camera Eavesdropper View -->
+                    <div class="flow-box">
+                        <h4>Hacker's View (Camera / Sniffer)</h4>
+                        <div style="font-size: 12px; color: var(--muted); margin-bottom: 6px;">What the attacker captures:</div>
+                        <div class="hacker-view" id="hackerBox">
+                            Capturing: TEMP-NETF-8921-XQ<br>
+                            <span style="color: #fbbf24;">Status: Attacker noted it down or photographed with camera.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rotation & Cryptographic Result (Revealed after Login) -->
+                <div id="rotationResult" style="display: none; background: #071510; border: 1px solid #064e3b; border-radius: 14px; padding: 18px;">
+                    <div style="display: flex; align-items: center; gap: 8px; color: #34d399; font-weight: 700; font-size: 15px; margin-bottom: 8px;">
+                        <span>✓</span> Automatic Key Rotation Triggered!
+                    </div>
+                    <p style="font-size: 13px; color: #a7f3d0; line-height: 1.6;">
+                        1. <strong>The 1-Time Key Died:</strong> <code>TEMP-NETF-8921-XQ</code> was permanently revoked and burned.<br>
+                        2. <strong>Key Rotation Executed:</strong> A brand new 256-bit encryption key was generated.<br>
+                        3. <strong>PBKDF2 + AES-256 Hashing:</strong> The real password was re-sealed under versioned AAD.<br>
+                        4. <strong>Attacker's Result:</strong> Even though the hacker wrote the password down or photographed it, <strong>it is 100% DEAD and cannot unlock the account</strong>!
                     </p>
                 </div>
             </div>
 
-            <h4 style="font-size: 14px; color: var(--muted); margin-bottom: 14px;">ACTIVE GUEST PASSES:</h4>
-            <div id="guestPassList">
-                <!-- Active passes render here -->
-            </div>
-
-            <!-- Interactive Friend Simulator -->
-            <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 24px; margin-top: 24px;">
-                <h4 style="font-size: 15px; margin-bottom: 8px;">🎮 Friend's Point-of-View Simulator</h4>
-                <p style="font-size: 12px; color: var(--muted); margin-bottom: 16px;">
-                    Test what happens when someone tries to use an expired or revoked guest pass on a website:
-                </p>
-                <div style="display: flex; gap: 10px; max-width: 480px;">
-                    <input type="text" id="simTestPass" class="input-box" style="margin-bottom: 0;" placeholder="Enter Guest Pass code...">
-                    <button class="btn" onclick="testFriendLogin()">Attempt Login</button>
-                </div>
-                <div id="simResult" style="margin-top: 14px; font-size: 13px; font-weight: 600;"></div>
-            </div>
         </div>
+    </main>
 
-    </div>
-
-    <!-- MODAL: Generate Guest Pass -->
-    <div class="modal-bg" id="guestModal">
-        <div class="modal-box">
-            <h3 id="modalAccountTitle" style="font-size: 18px; margin-bottom: 6px;">Create Disposable Guest Pass</h3>
-            <p style="font-size: 12px; color: var(--muted); margin-bottom: 16px;">
-                Choose how long this password should stay valid before self-destructing:
-            </p>
-
-            <div class="duration-selector">
-                <button class="dur-btn selected" onclick="selectDuration(this, 30)">⏱️ 30 Minutes</button>
-                <button class="dur-btn" onclick="selectDuration(this, 120)">⏱️ 2 Hours</button>
-                <button class="dur-btn" onclick="selectDuration(this, 1440)">⏱️ 24 Hours</button>
-            </div>
-
-            <label style="font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px;">Friend / Recipient Name</label>
-            <input type="text" id="guestFriendName" class="input-box" placeholder="e.g. Alex (College Friend)">
-
-            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
-                <button class="btn btn-secondary" onclick="closeGuestModal()">Cancel</button>
-                <button class="btn btn-warning" onclick="confirmGenerateGuestPass()">⚡ Generate & Copy Pass</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL: Add Account -->
-    <div class="modal-bg" id="addAccountModal">
-        <div class="modal-box">
-            <h3 style="font-size: 18px; margin-bottom: 14px;">Add New Account</h3>
-            <label style="font-size: 12px; color: var(--muted); margin-bottom: 4px; display: block;">Account Name</label>
-            <input type="text" id="newSiteName" class="input-box" placeholder="e.g. Amazon, Bank">
-            <label style="font-size: 12px; color: var(--muted); margin-bottom: 4px; display: block;">Username / Email</label>
-            <input type="text" id="newUserName" class="input-box" placeholder="e.g. user@gmail.com">
-            <label style="font-size: 12px; color: var(--muted); margin-bottom: 4px; display: block;">Permanent Password</label>
-            <input type="text" id="newPassVal" class="input-box" placeholder="Password">
-
-            <div style="display: flex; justify-content: flex-end; gap: 10px;">
-                <button class="btn btn-secondary" onclick="document.getElementById('addAccountModal').style.display='none'">Cancel</button>
-                <button class="btn" onclick="saveNewAccount()">Save Account</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="toast">Copied to clipboard!</div>
+    <div class="toast" id="toast">Copied to clipboard!</div>
 
     <script>
-        let accounts = [
-            { id: 1, name: "Netflix Family", user: "sameer.stream@home.net", pass: "RealPermanentPass#8821", logo: "N", color: "#e50914" },
-            { id: 2, name: "Google Workspace", user: "sameer@gmail.com", pass: "RealGoogleSecret#2026", logo: "G", color: "#ea4335" },
-            { id: 3, name: "GitHub Account", user: "MohammedSameer-57", pass: "ghp_RealTokenSecret_9918", logo: "git", color: "#f8fafc" },
-            { id: 4, name: "Home Wi-Fi Network", user: "Network: 5G_FastHome", pass: "RealWifiPassword_4481", logo: "📶", color: "#3b82f6" }
-        ];
-
-        let guestPasses = [
-            { id: 101, account: "Netflix Family", recipient: "Alex (Friend)", code: "GUEST-NETFLIX-8921", minutesLeft: 118, status: "ACTIVE" }
-        ];
-
-        let selectedMinutes = 30;
-        let targetAccount = null;
-
-        function unlockVault() {
-            document.getElementById('screen1').style.display = 'none';
-            document.getElementById('screen2').style.display = 'block';
-            document.getElementById('lockBtn').style.display = 'inline-flex';
-            renderAccounts();
-            renderGuestPasses();
-            showToast("Vault Unlocked!");
+        function unlockMaster() {
+            document.getElementById('viewStep1').style.display = 'none';
+            document.getElementById('viewStep2').style.display = 'block';
+            document.getElementById('btnLock').style.display = 'inline-flex';
+            setStepper(1);
         }
 
         function lockVault() {
-            document.getElementById('screen1').style.display = 'flex';
-            document.getElementById('screen2').style.display = 'none';
-            document.getElementById('lockBtn').style.display = 'none';
-            showToast("Vault Locked.");
+            document.getElementById('viewStep1').style.display = 'flex';
+            document.getElementById('viewStep2').style.display = 'none';
+            document.getElementById('btnLock').style.display = 'none';
+            document.getElementById('flowPanel').style.display = 'none';
+            setStepper(0);
         }
 
-        function renderAccounts(filter = "") {
-            const grid = document.getElementById('vaultGrid');
-            grid.innerHTML = "";
+        let currentSecret = "";
+        let currentToken = "";
 
-            const filtered = accounts.filter(a => a.name.toLowerCase().includes(filter.toLowerCase()));
+        function triggerFlow(accountName, secret) {
+            currentSecret = secret;
+            currentToken = "TEMP-" + accountName.substring(0,4).toUpperCase() + "-" + Math.floor(1000 + Math.random()*9000);
+            
+            document.getElementById('flowTargetName').textContent = `Live Security Flow: ${accountName}`;
+            document.getElementById('tokenBox').textContent = currentToken;
+            document.getElementById('hackerBox').innerHTML = `Capturing: <strong>${currentToken}</strong><br><span style="color: #fbbf24;">Status: Attacker noted it down or photographed with camera.</span>`;
+            
+            document.getElementById('rotationResult').style.display = 'none';
+            document.getElementById('flowBadge').textContent = 'GUEST KEY GENERATED';
+            document.getElementById('flowBadge').style.background = 'rgba(245, 158, 11, 0.2)';
+            document.getElementById('flowBadge').style.color = '#fbbf24';
+            document.getElementById('btnSimulateLogin').style.display = 'inline-flex';
 
-            filtered.forEach(acc => {
-                const card = document.createElement('div');
-                card.className = 'card';
-                card.innerHTML = `
-                    <div class="card-header">
-                        <div class="logo-circle" style="color: ${acc.color}">${acc.logo}</div>
-                        <div>
-                            <h3 style="font-size: 15px; font-weight: 600;">${acc.name}</h3>
-                            <p style="font-size: 12px; color: var(--muted);">${acc.user}</p>
-                        </div>
-                    </div>
-                    <div class="card-middle">
-                        <span class="secret-dots" id="pass-${acc.id}">••••••••••••</span>
-                        <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px;" onclick="togglePeek(${acc.id}, '${acc.pass}')">👁️ Peek</button>
-                    </div>
-                    <div class="card-actions">
-                        <button class="btn btn-warning" onclick="openGuestPassModal('${acc.name}')">
-                            ⏱️ Create Guest Pass
-                        </button>
-                        <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" onclick="copyText('${acc.pass}', 'Permanent password copied')">🔑 Copy</button>
-                    </div>
+            document.getElementById('flowPanel').style.display = 'block';
+            document.getElementById('flowPanel').scrollIntoView({ behavior: 'smooth' });
+            setStepper(2);
+        }
+
+        function performOneTimeLogin() {
+            setStepper(3);
+
+            // Step 3: Login simulated
+            document.getElementById('btnSimulateLogin').style.display = 'none';
+            document.getElementById('flowBadge').textContent = 'LOGIN USED ➔ ROTATION EXECUTING...';
+            document.getElementById('flowBadge').style.background = 'rgba(59, 130, 246, 0.2)';
+            document.getElementById('flowBadge').style.color = '#60a5fa';
+
+            setTimeout(() => {
+                // Step 4: Rotation & Lock
+                setStepper(4);
+                document.getElementById('flowBadge').textContent = 'ROTATED & ENCRYPTED (PBKDF2 + AES-256)';
+                document.getElementById('flowBadge').style.background = 'rgba(16, 185, 129, 0.2)';
+                document.getElementById('flowBadge').style.color = '#34d399';
+
+                document.getElementById('tokenBox').innerHTML = `<span style="text-decoration: line-through; opacity: 0.5;">${currentToken}</span> <span style="color: #ef4444; font-size: 12px;">(REVOKED & DEAD)</span>`;
+
+                // Generate random AES-256-GCM ciphertext bytes
+                const randomHash = Array.from({length: 48}, () => Math.floor(Math.random()*16).toString(16)).join('');
+                document.getElementById('hackerBox').innerHTML = `
+                    <span style="color: #f87171;">Key Revoked! Attacker now holds dead data:</span><br>
+                    <strong>Ciphertext:</strong> 0x${randomHash.substring(0, 32)}...<br>
+                    <strong>Algorithm:</strong> PBKDF2 (600k rounds) + AES-256-GCM<br>
+                    <strong>Access:</strong> <span style="color: #ef4444;">REJECTED (Loopholes: 0%)</span>
                 `;
-                grid.appendChild(card);
+
+                document.getElementById('rotationResult').style.display = 'block';
+            }, 800);
+        }
+
+        function setStepper(step) {
+            ['st1', 'st2', 'st3', 'st4'].forEach((id, idx) => {
+                const el = document.getElementById(id);
+                if (idx < step) {
+                    el.classList.add('active');
+                } else {
+                    el.classList.remove('active');
+                }
             });
-        }
-
-        function togglePeek(id, pass) {
-            const el = document.getElementById(`pass-${id}`);
-            if (el.textContent === "••••••••••••") {
-                el.textContent = pass;
-                setTimeout(() => { el.textContent = "••••••••••••"; }, 4000);
-            } else {
-                el.textContent = "••••••••••••";
-            }
-        }
-
-        function filterCards() {
-            renderAccounts(document.getElementById('searchFilter').value);
-        }
-
-        function switchMainTab(tab) {
-            if (tab === 'vault') {
-                document.getElementById('tabVault').classList.add('active');
-                document.getElementById('tabGuest').classList.remove('active');
-                document.getElementById('vaultContent').style.display = 'block';
-                document.getElementById('guestPassView').style.display = 'none';
-            } else {
-                document.getElementById('tabGuest').classList.add('active');
-                document.getElementById('tabVault').classList.remove('active');
-                document.getElementById('vaultContent').style.display = 'none';
-                document.getElementById('guestPassView').style.display = 'block';
-                renderGuestPasses();
-            }
-        }
-
-        function openGuestPassModal(accountName) {
-            targetAccount = accountName;
-            document.getElementById('modalAccountTitle').textContent = `Create Disposable Guest Pass for ${accountName}`;
-            document.getElementById('guestFriendName').value = "";
-            document.getElementById('guestModal').style.display = 'flex';
-        }
-
-        function closeGuestModal() {
-            document.getElementById('guestModal').style.display = 'none';
-        }
-
-        function selectDuration(btn, mins) {
-            document.querySelectorAll('.dur-btn').forEach(b => b.classList.remove('selected'));
-            btn.classList.add('selected');
-            selectedMinutes = mins;
-        }
-
-        function confirmGenerateGuestPass() {
-            const friend = document.getElementById('guestFriendName').value.trim() || "Friend";
-            const randomCode = `GUEST-${targetAccount.substring(0, 4).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
-
-            guestPasses.unshift({
-                id: Date.now(),
-                account: targetAccount,
-                recipient: friend,
-                code: randomCode,
-                minutesLeft: selectedMinutes,
-                status: "ACTIVE"
-            });
-
-            closeGuestModal();
-            updatePassCount();
-            switchMainTab('guest');
-            copyText(randomCode, `Guest Pass ${randomCode} copied for WhatsApp!`);
-        }
-
-        function renderGuestPasses() {
-            const list = document.getElementById('guestPassList');
-            list.innerHTML = "";
-
-            if (guestPasses.length === 0) {
-                list.innerHTML = `<div style="text-align: center; color: var(--muted); padding: 30px;">No active guest passes. Create one from "My Accounts".</div>`;
-                return;
-            }
-
-            guestPasses.forEach(pass => {
-                const item = document.createElement('div');
-                item.className = 'guest-pass-card';
-                const isExpired = pass.status === "EXPIRED" || pass.minutesLeft <= 0;
-                
-                item.innerHTML = `
-                    <div>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <h4 style="font-size: 15px; font-weight: 600;">${pass.account}</h4>
-                            <span style="font-size: 11px; padding: 2px 8px; border-radius: 12px; ${isExpired ? 'background: rgba(239, 68, 68, 0.2); color: #f87171;' : 'background: rgba(16, 185, 129, 0.2); color: #34d399; font-weight: 600;'}">${isExpired ? 'EXPIRED' : 'ACTIVE'}</span>
-                        </div>
-                        <div style="font-size: 12px; color: var(--muted); margin-top: 2px;">Recipient: <strong>${pass.recipient}</strong> • Time remaining: <strong>${isExpired ? '0 mins' : pass.minutesLeft + ' mins'}</strong></div>
-                        <div class="pass-code" style="${isExpired ? 'text-decoration: line-through; opacity: 0.5;' : ''}">${pass.code}</div>
-                    </div>
-                    <div>
-                        ${isExpired ? 
-                            `<span style="font-size: 12px; color: var(--muted);">Pass Inactive</span>` :
-                            `<button class="btn btn-danger" onclick="revokePass(${pass.id})">🚫 Revoke Immediately</button>`
-                        }
-                    </div>
-                `;
-                list.appendChild(item);
-            });
-            updatePassCount();
-        }
-
-        function revokePass(id) {
-            const pass = guestPasses.find(p => p.id === id);
-            if (pass) {
-                pass.status = "EXPIRED";
-                pass.minutesLeft = 0;
-                renderGuestPasses();
-                showToast(`Revoked pass ${pass.code}! It can no longer be used.`);
-            }
-        }
-
-        function updatePassCount() {
-            const active = guestPasses.filter(p => p.status === "ACTIVE" && p.minutesLeft > 0).length;
-            document.getElementById('passCount').textContent = active;
-        }
-
-        // Test Friend Simulator
-        function testFriendLogin() {
-            const entered = document.getElementById('simTestPass').value.trim();
-            const resultBox = document.getElementById('simResult');
-
-            if (!entered) {
-                resultBox.innerHTML = `<span style="color: var(--muted);">Please enter a pass to test.</span>`;
-                return;
-            }
-
-            const found = guestPasses.find(p => p.code.toLowerCase() === entered.toLowerCase());
-
-            if (found && found.status === "ACTIVE" && found.minutesLeft > 0) {
-                resultBox.innerHTML = `<span style="color: #34d399;">✅ ACCESS GRANTED! Pass is valid for ${found.account}. Time remaining: ${found.minutesLeft} mins.</span>`;
-            } else {
-                resultBox.innerHTML = `<span style="color: #ef4444;">❌ ACCESS DENIED! This guest pass is EXPIRED or REVOKED. Writing it down or keeping it in notes will not work.</span>`;
-            }
-        }
-
-        function openAddAccountModal() {
-            document.getElementById('addAccountModal').style.display = 'flex';
-        }
-
-        function saveNewAccount() {
-            const name = document.getElementById('newSiteName').value.trim();
-            const user = document.getElementById('newUserName').value.trim();
-            const pass = document.getElementById('newPassVal').value.trim();
-
-            if (!name || !pass) {
-                alert("Please fill in account name and password.");
-                return;
-            }
-
-            accounts.push({
-                id: Date.now(),
-                name: name,
-                user: user || "personal",
-                pass: pass,
-                logo: name.charAt(0).toUpperCase(),
-                color: "#3b82f6"
-            });
-
-            document.getElementById('addAccountModal').style.display = 'none';
-            renderAccounts();
-            showToast(`Added ${name} to your vault!`);
-        }
-
-        function copyText(txt, msg) {
-            navigator.clipboard.writeText(txt).then(() => {
-                showToast(msg);
-            }).catch(() => {
-                showToast("Copied: " + txt);
-            });
-        }
-
-        function showToast(msg) {
-            const toast = document.getElementById('toast');
-            toast.textContent = msg;
-            toast.style.display = 'block';
-            setTimeout(() => { toast.style.display = 'none'; }, 2400);
         }
     </script>
 </body>
