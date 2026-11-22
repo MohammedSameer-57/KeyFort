@@ -80,16 +80,19 @@ class KeyFortServerIntegrationTest {
     @DisplayName("Access events risk analysis and distributed coordinated attack detection")
     void testAccessEventRiskEvaluation() throws Exception {
         // First trust the phone
-        mockMvc.perform(post("/auth/device/verify")
+        MvcResult authResult = mockMvc.perform(post("/auth/device/verify")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new DeviceVerificationRequest("bob", "phone-bob", "123456"))))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andReturn();
+        String bobToken = objectMapper.readValue(authResult.getResponse().getContentAsString(), AuthResponse.class).token();
 
         Instant now = Instant.now();
 
         // Normal successful access from trusted phone -> ALLOW
         AccessEventRequest normalEvent = new AccessEventRequest(now, "bob", "phone-bob", "10.0.0.1", "US-NYC", true);
         MvcResult normalResult = mockMvc.perform(post("/access-events")
+                        .header("Authorization", "Bearer " + bobToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(normalEvent)))
                 .andExpect(status().isOk())
@@ -112,6 +115,7 @@ class KeyFortServerIntegrationTest {
                     false
             );
             MvcResult botResult = mockMvc.perform(post("/access-events")
+                            .header("Authorization", "Bearer " + bobToken)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(botEvent)))
                     .andExpect(status().isOk())
@@ -271,13 +275,16 @@ class KeyFortServerIntegrationTest {
     @Test
     @DisplayName("Ledger verification endpoint validates unbroken hash chain")
     void testLedgerVerificationEndpoint() throws Exception {
-        // Perform an audited action to guarantee at least one block exists
-        mockMvc.perform(post("/auth/device/verify")
+        // Perform an audited action to guarantee at least one block exists and get a valid JWT
+        MvcResult authResult = mockMvc.perform(post("/auth/device/verify")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new DeviceVerificationRequest("ledger-user", "ledger-dev", "code"))))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andReturn();
+        String token = objectMapper.readValue(authResult.getResponse().getContentAsString(), AuthResponse.class).token();
 
-        MvcResult result = mockMvc.perform(get("/ledger/verify"))
+        MvcResult result = mockMvc.perform(get("/ledger/verify")
+                        .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andReturn();
 

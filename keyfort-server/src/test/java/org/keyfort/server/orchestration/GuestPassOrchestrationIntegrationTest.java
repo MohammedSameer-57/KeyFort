@@ -70,10 +70,49 @@ class GuestPassOrchestrationIntegrationTest {
     @Autowired
     private GuestPassExpirySweeper expirySweeper;
 
+    private static com.sun.net.httpserver.HttpServer mockTargetSiteServer;
+
+    @org.junit.jupiter.api.BeforeAll
+    static void startTargetSiteServer() throws java.io.IOException {
+        try {
+            mockTargetSiteServer = com.sun.net.httpserver.HttpServer.create(new java.net.InetSocketAddress(9090), 0);
+            mockTargetSiteServer.createContext("/connector/tickets", exchange -> {
+                if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+                    String uniqueId = "tkt-mock-" + java.util.UUID.randomUUID();
+                    String resp = "{\"ticketId\":\"" + uniqueId + "\",\"redirectUrl\":\"http://localhost:9090/keyfort/login?ticket=" + uniqueId + "\"}";
+                    byte[] bytes = resp.getBytes(StandardCharsets.UTF_8);
+                    exchange.getResponseHeaders().set("Content-Type", "application/json");
+                    exchange.sendResponseHeaders(201, bytes.length);
+                    exchange.getResponseBody().write(bytes);
+                    exchange.close();
+                } else if ("DELETE".equalsIgnoreCase(exchange.getRequestMethod())) {
+                    exchange.sendResponseHeaders(204, -1);
+                    exchange.close();
+                } else {
+                    exchange.sendResponseHeaders(405, -1);
+                    exchange.close();
+                }
+            });
+            mockTargetSiteServer.start();
+        } catch (java.net.BindException ignored) {
+            // Server may already be running
+        }
+    }
+
+    @org.junit.jupiter.api.AfterAll
+    static void stopTargetSiteServer() {
+        if (mockTargetSiteServer != null) {
+            mockTargetSiteServer.stop(0);
+        }
+    }
+
     private String userJwtToken;
 
     @BeforeEach
     void setUp() throws Exception {
+        guestPassRepository.deleteAll();
+        processedEventRepository.deleteAll();
+
         // Authenticate user to obtain valid JWT token for authenticated endpoints
         DeviceVerificationRequest verifyReq = new DeviceVerificationRequest("alice-owner", "phone-alice", "123456");
         MvcResult authResult = mockMvc.perform(post("/auth/device/verify")
