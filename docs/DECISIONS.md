@@ -146,3 +146,22 @@ Option 2. The server strictly sets `rotationPending = true` on the owner's `Vaul
 
 ### Trade-offs
 Vault rotation is deferred until the owner next opens their vault client. Until then, the server records the pending rotation status and refuses conflicting operations until the client synchronizes the new key version.
+
+## 0009: Client IP resolution via trusted proxy verification for rate limiting
+
+### Status
+Accepted
+
+### Context
+`POST /api/guest-passes/redeem` is an unauthenticated endpoint rate-limited per IP and per pass ID to prevent brute-force attacks against high-entropy tokens. If `X-Forwarded-For` is accepted unconditionally from arbitrary HTTP clients, an attacker can trivially forge header values to bypass rate limiting or conduct denial-of-service against legitimate IP addresses.
+
+### Options Considered
+1. Always use `request.getRemoteAddr()`. Fails when deployed behind reverse proxies or load balancers as all traffic appears from internal proxy addresses.
+2. Unconditionally trust `X-Forwarded-For`. Vulnerable to trivial spoofing by untrusted clients.
+3. Validate immediate peer address (`request.getRemoteAddr()`) against configured trusted proxies (`keyfort.rate-limit.trusted-proxies`). Only extract client IP from `X-Forwarded-For` when arriving from a trusted proxy; otherwise, strictly use `request.getRemoteAddr()`.
+
+### Decision
+Option 3. The server inspects `request.getRemoteAddr()`. If and only if the peer IP is explicitly listed in `keyfort.rate-limit.trusted-proxies`, the client IP from `X-Forwarded-For` is extracted. Otherwise, `X-Forwarded-For` is discarded, and the direct socket address is used as the client identifier.
+
+### Trade-offs
+Deployments behind reverse proxies must configure `KEYFORT_TRUSTED_PROXIES` environment variable with proxy IP addresses or subnets.
