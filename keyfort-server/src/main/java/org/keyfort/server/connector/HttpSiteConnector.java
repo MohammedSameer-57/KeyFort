@@ -37,16 +37,23 @@ public class HttpSiteConnector implements SiteConnector {
     @org.springframework.beans.factory.annotation.Autowired
     public HttpSiteConnector(
             @Value("${keyfort.connector.base-url:http://localhost:9090}") String baseUrl,
-            @Value("${keyfort.connector.secret:demo-site-connector-hmac-shared-secret-key-material-256bits!!}") String secretStr,
+            @Value("${keyfort.connector.secret:}") String secretStr,
             ObjectMapper objectMapper
     ) {
         this(
                 baseUrl,
-                secretStr.getBytes(StandardCharsets.UTF_8),
+                validateSecret(secretStr),
                 HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build(),
                 objectMapper,
                 Clock.systemUTC()
         );
+    }
+
+    private static byte[] validateSecret(String secretStr) {
+        if (secretStr == null || secretStr.isBlank()) {
+            throw new IllegalStateException("KEYFORT_CONNECTOR_SECRET environment variable is not configured");
+        }
+        return secretStr.getBytes(StandardCharsets.UTF_8);
     }
 
     public HttpSiteConnector(

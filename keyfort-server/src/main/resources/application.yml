@@ -26,6 +26,9 @@ spring:
 
 keyfort:
   jwt:
-    # 256-bit secure secret for HMAC-SHA256 JWT signing
-    secret: "keyfort-secret-key-for-jwt-signing-must-be-at-least-256-bits-long!!"
+    # 256-bit secure secret for HMAC-SHA256 JWT signing from environment
+    secret: ${KEYFORT_JWT_SECRET:keyfort-secret-key-for-jwt-signing-must-be-at-least-256-bits-long!!}
     expiration-ms: 900000 # 15 minutes
+  connector:
+    secret: ${KEYFORT_CONNECTOR_SECRET:}
+    base-url: ${KEYFORT_CONNECTOR_BASE_URL:http://localhost:9090}
