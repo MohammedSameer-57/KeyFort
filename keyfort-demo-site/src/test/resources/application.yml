@@ -1,0 +1,4 @@
+keyfort:
+  connector:
+    secret: "dev-only-insecure-test-connector-hmac-secret-256bit!!"
+    webhook-url: "http://localhost:8080/api/webhooks/login"

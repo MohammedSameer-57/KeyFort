@@ -1,0 +1,4 @@
+keyfort:
+  connector:
+    secret: "dev-only-insecure-test-connector-hmac-secret-256bit!!"
+    base-url: "http://localhost:9090"
