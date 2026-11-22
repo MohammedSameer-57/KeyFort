@@ -128,3 +128,21 @@ Option 2. The guest credential is a single-use login ticket bound to an account 
 End-to-end zero-knowledge guest authentication requires target site cooperation via the connector SPI. Unintegrated sites cannot automatically enforce single-use revocation or automated login webhooks.
 
 
+
+## 0008: Server-side rotation-pending signaling for zero-knowledge client vault rotation
+
+### Status
+Accepted
+
+### Context
+When a guest pass reaches `BURNED`, the vault key must rotate to invalidate any previous state. However, the KeyFort server adheres to a zero-knowledge security architecture: the server never possesses the master password, KEK, or unencrypted DEK. Therefore, the server cannot re-encrypt vault entries directly.
+
+### Options Considered
+1. Store an escrow copy of the DEK on the server to allow server-side re-encryption.
+2. Set a persistent `rotation_pending` flag on the vault entity; the owner's client observes this flag upon next unlock or sync, rotates the DEK client-side, re-encrypts all entries under the new DEK, updates the wrapped DEKs, and uploads the new vault state.
+
+### Decision
+Option 2. The server strictly sets `rotationPending = true` on the owner's `VaultEntity` when a guest pass transitions to `BURNED`. The owner's client application detects `rotationPending` during the next local unlock or sync, rotates the key locally using the master secret in memory, and submits the rotated vault bundle via `PUT /vault/sync`.
+
+### Trade-offs
+Vault rotation is deferred until the owner next opens their vault client. Until then, the server records the pending rotation status and refuses conflicting operations until the client synchronizes the new key version.

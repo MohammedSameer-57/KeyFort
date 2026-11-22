@@ -47,6 +47,7 @@ In the initial baseline implementation:
 - **Hashed Token Storage**: The server stores only the SHA-256 hash of ephemeral guest tokens. Constant-time comparisons are used to prevent timing attacks.
 - **Strict Single-Use State Machine**: Ephemeral tokens advance through `CREATED -> ISSUED -> REDEEMED -> CONSUMED -> BURNED`. Concurrent redemption requests are resolved atomically such that exactly one caller succeeds.
 - **Post-Login Invalidation and Rotation**: Upon receipt of a verified login webhook from a cooperating site, the guest pass credential is revoked on the target site, marked burned, and vault key rotation is requested.
+- **Zero-Knowledge Key Rotation Delegation**: The server never holds the user's master key, KEK, or decrypted vault DEK. Consequently, upon burning a guest pass, the server cannot re-encrypt vault entries itself. The server flags `rotationPending = true` on the vault record. Key rotation is executed client-side by the owner's authenticated client at next unlock.
 - **Tamper Evidence**: Cryptographic operations verify Authenticated Additional Data (AAD) bound to entry IDs and key versions. Tampered ciphertext or ledger records fail verification deterministically.
 
 ## 6. Explicit Non-Goals and Limitations
