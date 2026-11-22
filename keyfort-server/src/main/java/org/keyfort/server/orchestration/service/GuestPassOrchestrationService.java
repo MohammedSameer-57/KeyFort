@@ -11,7 +11,7 @@ import org.keyfort.core.guestpass.GuestPassNotFoundException;
 import org.keyfort.core.guestpass.GuestPassService;
 import org.keyfort.core.guestpass.GuestPassState;
 import org.keyfort.core.guestpass.IssuedToken;
-import org.keyfort.server.entity.VaultEntity;
+import org.keyfort.server.entity.EntryEntity;
 import org.keyfort.server.orchestration.connector.SiteConnectorRegistry;
 import org.keyfort.server.orchestration.entity.GuestPassEntity;
 import org.keyfort.server.orchestration.entity.ProcessedEventEntity;
@@ -19,12 +19,14 @@ import org.keyfort.server.orchestration.ratelimit.RedeemRateLimiter;
 import org.keyfort.server.orchestration.repository.GuestPassRepository;
 import org.keyfort.server.orchestration.repository.ProcessedEventRepository;
 import org.keyfort.server.orchestration.store.JpaGuestPassStore;
+import org.keyfort.server.repository.EntryRepository;
 import org.keyfort.server.repository.VaultRepository;
 import org.keyfort.server.service.LedgerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,7 +34,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Clock;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -44,6 +45,7 @@ public class GuestPassOrchestrationService {
 
     private final GuestPassRepository repository;
     private final ProcessedEventRepository processedEventRepository;
+    private final EntryRepository entryRepository;
     private final JpaGuestPassStore store;
     private final SiteConnectorRegistry connectorRegistry;
     private final RedeemRateLimiter rateLimiter;
@@ -58,6 +60,7 @@ public class GuestPassOrchestrationService {
     public GuestPassOrchestrationService(
             GuestPassRepository repository,
             ProcessedEventRepository processedEventRepository,
+            EntryRepository entryRepository,
             JpaGuestPassStore store,
             SiteConnectorRegistry connectorRegistry,
             RedeemRateLimiter rateLimiter,
@@ -66,7 +69,7 @@ public class GuestPassOrchestrationService {
             ObjectMapper objectMapper,
             @Value("${keyfort.connector.secret:}") String connectorSecretStr
     ) {
-        this(repository, processedEventRepository, store, connectorRegistry, rateLimiter,
+        this(repository, processedEventRepository, entryRepository, store, connectorRegistry, rateLimiter,
                 vaultRepository, ledgerService, objectMapper, Clock.systemUTC(),
                 connectorSecretStr != null ? connectorSecretStr.getBytes(StandardCharsets.UTF_8) : new byte[0]);
     }
@@ -74,6 +77,7 @@ public class GuestPassOrchestrationService {
     public GuestPassOrchestrationService(
             GuestPassRepository repository,
             ProcessedEventRepository processedEventRepository,
+            EntryRepository entryRepository,
             JpaGuestPassStore store,
             SiteConnectorRegistry connectorRegistry,
             RedeemRateLimiter rateLimiter,
@@ -85,6 +89,7 @@ public class GuestPassOrchestrationService {
     ) {
         this.repository = repository;
         this.processedEventRepository = processedEventRepository;
+        this.entryRepository = entryRepository;
         this.store = store;
         this.connectorRegistry = connectorRegistry;
         this.rateLimiter = rateLimiter;
@@ -103,10 +108,15 @@ public class GuestPassOrchestrationService {
         Objects.requireNonNull(scope, "scope must not be null");
         Objects.requireNonNull(ttl, "ttl must not be null");
 
+        // Verify entry ownership: user A cannot create pass for user B's entry
+        Optional<EntryEntity> entryOpt = entryRepository.findById(entryId);
+        if (entryOpt.isPresent() && !ownerUserId.equals(entryOpt.get().getUserId())) {
+            throw new AccessDeniedException("Forbidden: Entry does not belong to authenticated user");
+        }
+
         GuestPassService coreService = new GuestPassService(store, clock);
         IssuedToken issued = coreService.create(entryId, scope, ttl);
 
-        // Associate owner user id
         repository.findById(issued.id()).ifPresent(e -> {
             e.setOwnerUserId(ownerUserId);
             repository.save(e);
@@ -118,7 +128,7 @@ public class GuestPassOrchestrationService {
     @Transactional
     public String redeem(String clientIp, String rawToken) {
         if (rawToken == null || !rawToken.contains(".")) {
-            executeDummyComparison();
+            executeDummyComparison(rawToken);
             throw new IllegalArgumentException("Invalid or expired guest pass");
         }
 
@@ -126,21 +136,19 @@ public class GuestPassOrchestrationService {
         String passId = parts[0];
         String rawSecret = parts[1];
 
-        // Rate limiting per IP and per pass id
         if (!rateLimiter.allowRequest(clientIp, passId)) {
             throw new RateLimitExceededException("Rate limit exceeded for guest pass redemption");
         }
 
         Optional<GuestPassEntity> entityOpt = repository.findById(passId);
         if (entityOpt.isEmpty()) {
-            executeDummyComparison();
+            executeDummyComparison(rawSecret);
             throw new IllegalArgumentException("Invalid or expired guest pass");
         }
 
         GuestPassEntity entity = entityOpt.get();
         GuestPass pass = entity.toDomain();
 
-        // Check secret with constant-time equality
         byte[] expectedHash = pass.secretHash();
         byte[] actualHash = Crypto.sha256(rawSecret.getBytes(StandardCharsets.US_ASCII));
 
@@ -149,11 +157,10 @@ public class GuestPassOrchestrationService {
         boolean notExpired = clock.instant().isBefore(pass.expiresAt());
 
         if (!validSecret || !validState || !notExpired) {
-            executeDummyComparison();
+            executeDummyComparison(rawSecret);
             throw new IllegalArgumentException("Invalid or expired guest pass");
         }
 
-        // Provision ticket at target site via connector
         SiteConnector connector = connectorRegistry.getConnectorForEntry(pass.entryId());
         Duration remainingTtl = Duration.between(clock.instant(), pass.expiresAt());
         if (remainingTtl.isNegative() || remainingTtl.isZero()) {
@@ -162,25 +169,23 @@ public class GuestPassOrchestrationService {
 
         TicketHandle ticket = connector.provisionTicket(pass.entryId(), pass.scope(), remainingTtl);
 
-        // Move state machine to REDEEMED
         GuestPass redeemed = pass.redeem(clock, ticket.ticketId());
         boolean casSuccess = store.compareAndSet(pass.id(), pass.version(), redeemed);
         if (!casSuccess) {
-            // Concurrent race lost
             throw new IllegalStateException("Guest pass redemption failed due to concurrent modification");
         }
 
         return ticket.redirectUrl();
     }
 
-    private void executeDummyComparison() {
+    private void executeDummyComparison(String rawSecret) {
+        byte[] computed = Crypto.sha256(rawSecret != null ? rawSecret.getBytes(StandardCharsets.US_ASCII) : new byte[0]);
         byte[] dummy = Crypto.sha256("dummy-keyfort-constant-timing-pad".getBytes(StandardCharsets.US_ASCII));
-        MessageDigest.isEqual(dummy, dummy);
+        MessageDigest.isEqual(dummy, computed);
     }
 
     @Transactional
     public Map<String, Object> handleWebhookEvent(SignedRequest signedRequest) {
-        // HMAC signature verification
         hmacSigner.verify(connectorSecret, signedRequest);
 
         Map<?, ?> payloadMap;
@@ -198,7 +203,6 @@ public class GuestPassOrchestrationService {
             throw new IllegalArgumentException("Missing eventId or ticketId in webhook payload");
         }
 
-        // Idempotency check: replays are a no-op
         if (processedEventRepository.existsById(eventId)) {
             return Map.of("status", "IDEMPOTENT_NOOP");
         }
@@ -212,11 +216,9 @@ public class GuestPassOrchestrationService {
         GuestPass pass = entity.toDomain();
 
         if (pass.state() == GuestPassState.REDEEMED) {
-            // 1. Mark CONSUMED
             GuestPass consumed = pass.consume(clock);
             store.compareAndSet(pass.id(), pass.version(), consumed);
 
-            // 2. Revoke ticket on connector
             SiteConnector connector = connectorRegistry.getConnectorForEntry(pass.entryId());
             try {
                 connector.revokeTicket(ticketId);
@@ -224,11 +226,9 @@ public class GuestPassOrchestrationService {
                 log.warn("Ticket revocation error on connector: {}", e.getMessage());
             }
 
-            // 3. Mark BURNED
             GuestPass burned = consumed.burn(clock);
             store.compareAndSet(consumed.id(), consumed.version(), burned);
 
-            // 4. Mark Vault rotation pending
             if (entity.getOwnerUserId() != null) {
                 vaultRepository.findById(entity.getOwnerUserId()).ifPresent(v -> {
                     v.setRotationPending(true);
@@ -236,12 +236,10 @@ public class GuestPassOrchestrationService {
                 });
             }
 
-            // 5. Audit ledger: record only hash prefix of pass id
             String passPrefix = Crypto.toHex(Crypto.sha256(pass.id().getBytes(StandardCharsets.UTF_8))).substring(0, 16);
             ledgerService.append("GUEST_PASS_BURNED", "passPrefix=" + passPrefix + ", entryId=" + pass.entryId());
         }
 
-        // Persist processed event for idempotency
         processedEventRepository.save(new ProcessedEventEntity(eventId, ticketId, clock.instant()));
         return Map.of("status", "SUCCESS");
     }
@@ -252,7 +250,7 @@ public class GuestPassOrchestrationService {
                 .orElseThrow(() -> new GuestPassNotFoundException("Guest pass not found: " + passId));
 
         if (ownerUserId != null && entity.getOwnerUserId() != null && !ownerUserId.equals(entity.getOwnerUserId())) {
-            throw new GuestPassNotFoundException("Guest pass not found: " + passId);
+            throw new AccessDeniedException("Forbidden: Pass does not belong to authenticated user");
         }
 
         GuestPass pass = entity.toDomain();

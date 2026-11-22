@@ -70,6 +70,9 @@ class GuestPassOrchestrationIntegrationTest {
     @Autowired
     private GuestPassExpirySweeper expirySweeper;
 
+    @Autowired
+    private org.keyfort.server.repository.EntryRepository entryRepository;
+
     private static com.sun.net.httpserver.HttpServer mockTargetSiteServer;
 
     @org.junit.jupiter.api.BeforeAll
@@ -447,5 +450,127 @@ class GuestPassOrchestrationIntegrationTest {
 
         String body = res.getResponse().getContentAsString();
         assertFalse(body.contains(rawSecret), "Response must never leak raw token secret");
+    }
+
+    @Test
+    @DisplayName("User A cannot create or revoke a guest pass for User B's entry (403 Forbidden)")
+    void testUserCannotCreateOrRevokePassForOtherUsersEntry() throws Exception {
+        // 1. Create entry owned by bob
+        org.keyfort.server.entity.EntryEntity bobEntry = new org.keyfort.server.entity.EntryEntity(
+                "entry-bob-private",
+                "bob-user",
+                "https://bobsite.example",
+                "bob",
+                Crypto.random(32),
+                1,
+                Instant.now()
+        );
+        entryRepository.save(bobEntry);
+
+        // 2. alice-owner attempts to create a pass for bob's entry -> 403
+        CreateGuestPassRequest illegalCreate = new CreateGuestPassRequest("entry-bob-private", "read", 900);
+        mockMvc.perform(post("/api/guest-passes")
+                        .header("Authorization", "Bearer " + userJwtToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(illegalCreate)))
+                .andExpect(status().isForbidden());
+
+        // 3. alice-owner creates a pass for her own entry
+        CreateGuestPassRequest aliceCreate = new CreateGuestPassRequest("entry-alice-own", "read", 900);
+        MvcResult createResult = mockMvc.perform(post("/api/guest-passes")
+                        .header("Authorization", "Bearer " + userJwtToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(aliceCreate)))
+                .andExpect(status().isCreated())
+                .andReturn();
+        CreateGuestPassResponse alicePass = objectMapper.readValue(createResult.getResponse().getContentAsString(), CreateGuestPassResponse.class);
+
+        // 4. Bob authenticates to get his JWT token
+        MvcResult bobAuth = mockMvc.perform(post("/auth/device/verify")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new DeviceVerificationRequest("bob-user", "bob-phone", "123456"))))
+                .andExpect(status().isOk())
+                .andReturn();
+        String bobToken = objectMapper.readValue(bobAuth.getResponse().getContentAsString(), AuthResponse.class).token();
+
+        // 5. Bob attempts to revoke alice's pass -> 403
+        mockMvc.perform(delete("/api/guest-passes/" + alicePass.id())
+                        .header("Authorization", "Bearer " + bobToken))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("Vault rotationPending flag is returned on vault sync fetch and cleared upon rotated sync upload")
+    void testVaultSyncRotationPendingFlagLifecycle() throws Exception {
+        // 1. Initial vault fetch returns rotationPending = false
+        MvcResult initialResult = mockMvc.perform(get("/vault/sync")
+                        .header("Authorization", "Bearer " + userJwtToken))
+                .andExpect(status().isOk())
+                .andReturn();
+        org.keyfort.server.dto.VaultSyncResponse initialResp = objectMapper.readValue(
+                initialResult.getResponse().getContentAsString(), org.keyfort.server.dto.VaultSyncResponse.class);
+        assertFalse(initialResp.rotationPending());
+        assertEquals(1, initialResp.keyVersion());
+
+        // 2. Simulate pass burn setting rotation pending on vault
+        var vault = vaultRepository.findById("alice-owner").orElseThrow();
+        vault.setRotationPending(true);
+        vaultRepository.save(vault);
+
+        // 3. Vault fetch now returns rotationPending = true
+        MvcResult pendingResult = mockMvc.perform(get("/vault/sync")
+                        .header("Authorization", "Bearer " + userJwtToken))
+                .andExpect(status().isOk())
+                .andReturn();
+        org.keyfort.server.dto.VaultSyncResponse pendingResp = objectMapper.readValue(
+                pendingResult.getResponse().getContentAsString(), org.keyfort.server.dto.VaultSyncResponse.class);
+        assertTrue(pendingResp.rotationPending());
+
+        // 4. Client rotates key locally and uploads rotated vault bundle with keyVersion = 2 and rotationPending = false
+        VaultSyncRequest rotatedSyncReq = new VaultSyncRequest(
+                "alice-owner",
+                initialResp.iterations(),
+                initialResp.recoveryPubBase64(),
+                initialResp.kdfSaltBase64(),
+                initialResp.wrappedDekBase64(),
+                initialResp.recoveryWrappedDekBase64(),
+                2,
+                false,
+                List.of()
+        );
+        mockMvc.perform(put("/vault/sync")
+                        .header("Authorization", "Bearer " + userJwtToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(rotatedSyncReq)))
+                .andExpect(status().isOk());
+
+        // 5. Vault fetch confirms rotationPending is cleared and keyVersion is updated
+        MvcResult clearedResult = mockMvc.perform(get("/vault/sync")
+                        .header("Authorization", "Bearer " + userJwtToken))
+                .andExpect(status().isOk())
+                .andReturn();
+        org.keyfort.server.dto.VaultSyncResponse clearedResp = objectMapper.readValue(
+                clearedResult.getResponse().getContentAsString(), org.keyfort.server.dto.VaultSyncResponse.class);
+        assertFalse(clearedResp.rotationPending(), "rotationPending must be cleared after client uploads rotated vault");
+        assertEquals(2, clearedResp.keyVersion(), "Vault keyVersion must be updated to 2");
+    }
+
+    @Test
+    @DisplayName("Rate limiter client IP resolution respects trusted proxies and ignores spoofed X-Forwarded-For")
+    void testRateLimiterRespectsTrustedProxies() {
+        org.keyfort.server.orchestration.ratelimit.ClientIpResolver resolver =
+                new org.keyfort.server.orchestration.ratelimit.ClientIpResolver("127.0.0.1,::1");
+
+        // Request directly from untrusted public IP with forged header -> ignores header
+        org.springframework.mock.web.MockHttpServletRequest untrustedReq = new org.springframework.mock.web.MockHttpServletRequest();
+        untrustedReq.setRemoteAddr("198.51.100.99");
+        untrustedReq.addHeader("X-Forwarded-For", "1.1.1.1");
+        assertEquals("198.51.100.99", resolver.resolveClientIp(untrustedReq));
+
+        // Request from trusted reverse proxy -> extracts forwarded client IP
+        org.springframework.mock.web.MockHttpServletRequest trustedReq = new org.springframework.mock.web.MockHttpServletRequest();
+        trustedReq.setRemoteAddr("127.0.0.1");
+        trustedReq.addHeader("X-Forwarded-For", "203.0.113.44, 10.0.0.1");
+        assertEquals("203.0.113.44", resolver.resolveClientIp(trustedReq));
     }
 }

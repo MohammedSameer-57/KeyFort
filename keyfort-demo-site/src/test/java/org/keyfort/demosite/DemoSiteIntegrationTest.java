@@ -126,6 +126,50 @@ class DemoSiteIntegrationTest {
     }
 
     @Test
+    @DisplayName("Webhook failure stores event in outbox and retry updates attempt count")
+    void testWebhookOutboxAndRetry() {
+        outboxRepository.deleteAll();
+
+        WebhookDispatchService failingService = new WebhookDispatchService(
+                outboxRepository,
+                objectMapper,
+                new String(SECRET, StandardCharsets.UTF_8),
+                "http://127.0.0.1:59999/unreachable/webhook"
+        );
+
+        failingService.dispatchLoginObserved("ticket-outbox-legacy-1", "entry-legacy", "read-only");
+
+        List<OutboxEventEntity> undelivered = outboxRepository.findByDeliveredFalse();
+        assertEquals(1, undelivered.size());
+        OutboxEventEntity event = undelivered.get(0);
+        assertFalse(event.isDelivered());
+        assertEquals(1, event.getRetryCount());
+        assertTrue(event.getPayload().contains("ticket-outbox-legacy-1"));
+    }
+
+    @Test
+    @DisplayName("Second use of same ticket via HTTP redirects to login with invalid_ticket error")
+    void testSecondUseOfTicketViaHttpFails() throws Exception {
+        TicketEntity ticket = ticketService.createTicket("entry-reuse-explicit", "read-only", Duration.ofMinutes(15));
+        MockHttpSession session1 = new MockHttpSession();
+        MockHttpSession session2 = new MockHttpSession();
+
+        mockMvc.perform(post("/keyfort/login")
+                        .param("ticket", ticket.getTicketToken())
+                        .session(session1))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Referrer-Policy", "no-referrer"))
+                .andExpect(redirectedUrl("/dashboard"));
+
+        mockMvc.perform(post("/keyfort/login")
+                        .param("ticket", ticket.getTicketToken())
+                        .session(session2))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Referrer-Policy", "no-referrer"))
+                .andExpect(redirectedUrl("/login?error=invalid_ticket"));
+    }
+
+    @Test
     @DisplayName("GET /keyfort/login shows confirmation page and does not consume ticket")
     void testConfirmationPageGetDoesNotConsumeTicket() throws Exception {
         TicketEntity ticket = ticketService.createTicket("entry-confirm-1", "read-only", Duration.ofMinutes(15));
