@@ -10,4 +10,25 @@ rootProject.name = 'keyfort'
 
 include 'keyfort-core'
 include 'keyfort-server'
-include 'keyfort-android'
+
+boolean hasAndroidSdk = false
+def envAndroidHome = System.getenv('ANDROID_HOME') ?: System.getenv('ANDROID_SDK_ROOT')
+if (envAndroidHome && file(envAndroidHome).exists()) {
+    hasAndroidSdk = true
+} else {
+    def localProps = file('local.properties')
+    if (localProps.exists()) {
+        def props = new Properties()
+        localProps.withInputStream { props.load(it) }
+        def sdkDir = props.getProperty('sdk.dir')
+        if (sdkDir && file(sdkDir).exists()) {
+            hasAndroidSdk = true
+        }
+    }
+}
+
+if (hasAndroidSdk) {
+    include 'keyfort-android'
+} else {
+    println 'Notice: Android SDK not detected (ANDROID_HOME or local.properties sdk.dir unset). Skipping :keyfort-android.'
+}
