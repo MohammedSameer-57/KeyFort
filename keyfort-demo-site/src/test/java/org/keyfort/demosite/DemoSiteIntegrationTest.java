@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.keyfort.core.Crypto;
 import org.keyfort.core.connector.HmacSigner;
 import org.keyfort.demosite.entity.OutboxEventEntity;
+import org.keyfort.demosite.entity.OutboxStatus;
 import org.keyfort.demosite.entity.TicketEntity;
 import org.keyfort.demosite.repository.OutboxEventRepository;
 import org.keyfort.demosite.repository.TicketRepository;
@@ -20,9 +21,12 @@ import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -40,7 +44,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DisplayName("Demo Site Connector and Single-Use Ticket Integration Tests")
 class DemoSiteIntegrationTest {
 
-    private static final byte[] SECRET = "demo-site-connector-hmac-shared-secret-key-material-256bits!!".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] SECRET = "dev-only-insecure-test-connector-hmac-secret-256bit!!".getBytes(StandardCharsets.UTF_8);
 
     @Autowired
     private MockMvc mockMvc;
@@ -101,7 +105,6 @@ class DemoSiteIntegrationTest {
     @Test
     @DisplayName("Expired ticket fails consumption with generic error message")
     void testExpiredTicketFailsConsumption() {
-        // Create ticket with negative duration so it is expired immediately
         Instant now = Instant.now();
         String id = Base64.getUrlEncoder().withoutPadding().encodeToString(Crypto.random(10));
         String token = "tkt_" + Base64.getUrlEncoder().withoutPadding().encodeToString(Crypto.random(16));
@@ -123,32 +126,124 @@ class DemoSiteIntegrationTest {
     }
 
     @Test
-    @DisplayName("Webhook failure stores event in outbox and retry updates attempt count")
-    void testWebhookOutboxAndRetry() {
+    @DisplayName("GET /keyfort/login shows confirmation page and does not consume ticket")
+    void testConfirmationPageGetDoesNotConsumeTicket() throws Exception {
+        TicketEntity ticket = ticketService.createTicket("entry-confirm-1", "read-only", Duration.ofMinutes(15));
+
+        MvcResult result = mockMvc.perform(get("/keyfort/login")
+                        .param("ticket", ticket.getTicketToken()))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Referrer-Policy", "no-referrer"))
+                .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_HTML))
+                .andReturn();
+
+        String content = result.getResponse().getContentAsString();
+        assertTrue(content.contains("KeyFort Guest Access Confirmation"), "Page must show guest access confirmation");
+        assertTrue(content.contains("entry-confirm-1"), "Page must show target entry");
+        assertTrue(content.contains("action=\"/keyfort/login\" method=\"post\""), "Must contain POST confirmation form");
+
+        TicketEntity stored = ticketRepository.findById(ticket.getId()).orElseThrow();
+        assertFalse(stored.isUsed(), "GET request must NOT mark ticket as used");
+    }
+
+    @Test
+    @DisplayName("Prefetch-style repeated GETs do not consume ticket; subsequent POST consumes atomically")
+    void testPrefetchStyleRepeatedGetsDoNotConsumeTicket() throws Exception {
+        TicketEntity ticket = ticketService.createTicket("entry-prefetch-1", "read-only", Duration.ofMinutes(15));
+        String token = ticket.getTicketToken();
+
+        // 5 repeated GET requests simulating browser prefetching or user refreshing confirmation page
+        for (int i = 0; i < 5; i++) {
+            mockMvc.perform(get("/keyfort/login").param("ticket", token))
+                    .andExpect(status().isOk())
+                    .andExpect(header().string("Referrer-Policy", "no-referrer"));
+
+            TicketEntity afterGet = ticketRepository.findById(ticket.getId()).orElseThrow();
+            assertFalse(afterGet.isUsed(), "Ticket must remain unconsumed after prefetch GET iteration " + i);
+        }
+
+        // POST confirmation consumes the ticket
+        MockHttpSession session = new MockHttpSession();
+        mockMvc.perform(post("/keyfort/login")
+                        .param("ticket", token)
+                        .session(session))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Referrer-Policy", "no-referrer"))
+                .andExpect(redirectedUrl("/dashboard"));
+
+        TicketEntity afterPost = ticketRepository.findById(ticket.getId()).orElseThrow();
+        assertTrue(afterPost.isUsed(), "POST must consume the ticket");
+        assertEquals("guest-entry-prefetch-1", session.getAttribute("user"));
+
+        // A second POST must fail with invalid_ticket redirect
+        mockMvc.perform(post("/keyfort/login")
+                        .param("ticket", token))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Referrer-Policy", "no-referrer"))
+                .andExpect(redirectedUrl("/login?error=invalid_ticket"));
+    }
+
+    @Test
+    @DisplayName("Outbox implements exponential backoff, max attempts, and transitions to DEAD_LETTER")
+    void testOutboxExponentialBackoffAndDeadLetterStatus() {
         outboxRepository.deleteAll();
 
-        // Dispatch a webhook to a guaranteed non-existent port (e.g. 59999) to simulate failure
-        WebhookDispatchService failingService = new WebhookDispatchService(
+        MutableTestClock testClock = new MutableTestClock(Instant.parse("2026-11-22T12:00:00Z"));
+        int maxAttempts = 3;
+
+        WebhookDispatchService dispatchService = new WebhookDispatchService(
                 outboxRepository,
                 objectMapper,
                 new String(SECRET, StandardCharsets.UTF_8),
-                "http://127.0.0.1:59999/unreachable/webhook"
+                "http://127.0.0.1:59999/unreachable/webhook",
+                HttpClient.newHttpClient(),
+                testClock,
+                maxAttempts
         );
 
-        failingService.dispatchLoginObserved("ticket-outbox-1", "entry-99", "read-only");
+        // Initial dispatch failure creates outbox entry with retryCount = 1, status = PENDING
+        dispatchService.dispatchLoginObserved("ticket-dlq-1", "entry-dlq", "read-only");
 
-        List<OutboxEventEntity> undelivered = outboxRepository.findByDeliveredFalse();
-        assertEquals(1, undelivered.size());
-        OutboxEventEntity event = undelivered.get(0);
-        assertFalse(event.isDelivered());
-        assertEquals(1, event.getRetryCount());
-        assertTrue(event.getPayload().contains("ticket-outbox-1"));
+        List<OutboxEventEntity> events = outboxRepository.findByDeliveredFalseAndStatus(OutboxStatus.PENDING);
+        assertEquals(1, events.size());
+        OutboxEventEntity initial = events.get(0);
+        assertEquals(1, initial.getRetryCount());
+        assertEquals(OutboxStatus.PENDING, initial.getStatus());
+        assertNotNull(initial.getNextAttemptAt());
+        // First backoff is 1 second (2^0)
+        assertEquals(testClock.instant().plusSeconds(1), initial.getNextAttemptAt());
 
-        // Trigger retry scheduled run
-        failingService.retryUndeliveredEvents();
-        OutboxEventEntity retried = outboxRepository.findById(event.getId()).orElseThrow();
-        assertEquals(2, retried.getRetryCount());
-        assertFalse(retried.isDelivered());
+        // Retry before nextAttemptAt should be skipped
+        dispatchService.retryUndeliveredEvents();
+        OutboxEventEntity skipped = outboxRepository.findById(initial.getId()).orElseThrow();
+        assertEquals(1, skipped.getRetryCount(), "Retry before nextAttemptAt must be skipped");
+
+        // Advance clock past first backoff window (2 seconds)
+        testClock.advance(Duration.ofSeconds(2));
+        dispatchService.retryUndeliveredEvents();
+
+        OutboxEventEntity secondAttempt = outboxRepository.findById(initial.getId()).orElseThrow();
+        assertEquals(2, secondAttempt.getRetryCount());
+        assertEquals(OutboxStatus.PENDING, secondAttempt.getStatus());
+        // Second backoff is 2 seconds (2^1)
+        assertEquals(testClock.instant().plusSeconds(2), secondAttempt.getNextAttemptAt());
+
+        // Advance clock past second backoff window
+        testClock.advance(Duration.ofSeconds(3));
+        dispatchService.retryUndeliveredEvents();
+
+        // Third attempt reaches maxAttempts (3) -> status transitions to DEAD_LETTER
+        OutboxEventEntity deadLetter = outboxRepository.findById(initial.getId()).orElseThrow();
+        assertEquals(3, deadLetter.getRetryCount());
+        assertEquals(OutboxStatus.DEAD_LETTER, deadLetter.getStatus());
+        assertFalse(deadLetter.isDelivered());
+
+        // Subsequent retry execution skips DEAD_LETTER events
+        testClock.advance(Duration.ofSeconds(60));
+        dispatchService.retryUndeliveredEvents();
+        OutboxEventEntity unchanged = outboxRepository.findById(initial.getId()).orElseThrow();
+        assertEquals(3, unchanged.getRetryCount(), "Dead letter event must not be re-attempted");
+        assertEquals(OutboxStatus.DEAD_LETTER, unchanged.getStatus());
     }
 
     @Test
@@ -157,38 +252,17 @@ class DemoSiteIntegrationTest {
         TicketEntity ticket = ticketService.createTicket("entry-session-1", "read-only", Duration.ofMinutes(15));
         MockHttpSession session = new MockHttpSession();
 
-        mockMvc.perform(get("/keyfort/login")
+        mockMvc.perform(post("/keyfort/login")
                         .param("ticket", ticket.getTicketToken())
                         .session(session))
                 .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Referrer-Policy", "no-referrer"))
                 .andExpect(redirectedUrl("/dashboard"));
 
         assertEquals("guest-entry-session-1", session.getAttribute("user"));
         assertEquals("read-only", session.getAttribute("scope"));
         assertEquals("GUEST_READONLY", session.getAttribute("role"));
         assertNotNull(session.getAttribute("guestExpiresAt"));
-    }
-
-    @Test
-    @DisplayName("Second use of same ticket via HTTP redirects to login with invalid_ticket error")
-    void testSecondUseOfTicketViaHttpFails() throws Exception {
-        TicketEntity ticket = ticketService.createTicket("entry-reuse", "read-only", Duration.ofMinutes(15));
-        MockHttpSession session1 = new MockHttpSession();
-        MockHttpSession session2 = new MockHttpSession();
-
-        // First use: success redirect to dashboard
-        mockMvc.perform(get("/keyfort/login")
-                        .param("ticket", ticket.getTicketToken())
-                        .session(session1))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/dashboard"));
-
-        // Second use: failure redirect to login with error
-        mockMvc.perform(get("/keyfort/login")
-                        .param("ticket", ticket.getTicketToken())
-                        .session(session2))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/login?error=invalid_ticket"));
     }
 
     @Test
@@ -200,7 +274,6 @@ class DemoSiteIntegrationTest {
         String nonce = "nonce-conn-test-1";
         String validSig = HmacSigner.sign(SECRET, "POST", "/connector/tickets", ts, nonce, body);
 
-        // Valid signature creates ticket
         MvcResult res = mockMvc.perform(post("/connector/tickets")
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("X-KeyFort-Timestamp", String.valueOf(ts))
@@ -214,7 +287,6 @@ class DemoSiteIntegrationTest {
         String ticketId = (String) respMap.get("ticketId");
         assertNotNull(ticketId);
 
-        // Invalid signature is rejected
         mockMvc.perform(post("/connector/tickets")
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("X-KeyFort-Timestamp", String.valueOf(ts))
@@ -227,12 +299,28 @@ class DemoSiteIntegrationTest {
     @Test
     @DisplayName("No secret or ticket appears in exception responses or logs")
     void testNoSecretAppearsInResponses() throws Exception {
-        MvcResult res = mockMvc.perform(get("/keyfort/login").param("ticket", "tkt_secret_token_12345"))
+        MvcResult res = mockMvc.perform(post("/keyfort/login").param("ticket", "tkt_secret_token_12345"))
                 .andExpect(status().is3xxRedirection())
                 .andReturn();
 
         String redirected = res.getResponse().getRedirectedUrl();
         assertNotNull(redirected);
         assertFalse(redirected.contains("secret_token_12345"), "Redirect URL must not echo raw ticket secret");
+    }
+
+    private static final class MutableTestClock extends Clock {
+        private Instant current;
+
+        MutableTestClock(Instant initial) {
+            this.current = initial;
+        }
+
+        void advance(Duration duration) {
+            this.current = this.current.plus(duration);
+        }
+
+        @Override public Instant instant() { return current; }
+        @Override public ZoneOffset getZone() { return ZoneOffset.UTC; }
+        @Override public Clock withZone(java.time.ZoneId zone) { return this; }
     }
 }

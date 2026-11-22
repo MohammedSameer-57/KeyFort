@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.keyfort.core.Crypto;
 import org.keyfort.core.connector.HmacSigner;
 import org.keyfort.demosite.entity.OutboxEventEntity;
+import org.keyfort.demosite.entity.OutboxStatus;
 import org.keyfort.demosite.repository.OutboxEventRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,7 +20,6 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -36,16 +36,21 @@ public class WebhookDispatchService {
     private final byte[] secret;
     private final String webhookUrl;
     private final Clock clock;
+    private final int maxAttempts;
 
     @org.springframework.beans.factory.annotation.Autowired
     public WebhookDispatchService(
             OutboxEventRepository outboxRepository,
             ObjectMapper objectMapper,
-            @Value("${keyfort.connector.secret:demo-site-connector-hmac-shared-secret-key-material-256bits!!}") String secretStr,
+            @Value("${keyfort.connector.secret:}") String secretStr,
             @Value("${keyfort.connector.webhook-url:http://localhost:8080/api/webhooks/login}") String webhookUrl
     ) {
-        this(outboxRepository, objectMapper, secretStr, webhookUrl, HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3)).build(), Clock.systemUTC());
+        this(outboxRepository, objectMapper, secretStr, webhookUrl,
+                HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3)).build(),
+                Clock.systemUTC(),
+                OutboxEventEntity.DEFAULT_MAX_ATTEMPTS);
     }
+
 
     public WebhookDispatchService(
             OutboxEventRepository outboxRepository,
@@ -53,14 +58,19 @@ public class WebhookDispatchService {
             String secretStr,
             String webhookUrl,
             HttpClient httpClient,
-            Clock clock
+            Clock clock,
+            int maxAttempts
     ) {
         this.outboxRepository = outboxRepository;
         this.objectMapper = objectMapper;
+        if (secretStr == null || secretStr.isBlank()) {
+            throw new IllegalStateException("KEYFORT_CONNECTOR_SECRET environment variable is not configured");
+        }
         this.secret = secretStr.getBytes(StandardCharsets.UTF_8);
         this.webhookUrl = webhookUrl;
         this.httpClient = httpClient;
         this.clock = clock;
+        this.maxAttempts = maxAttempts;
     }
 
     public void dispatchLoginObserved(String ticketId, String entryId, String scope) {
@@ -84,10 +94,14 @@ public class WebhookDispatchService {
                     UUID.randomUUID().toString(),
                     "LOGIN_OBSERVED",
                     jsonPayload,
-                    clock.instant()
+                    clock.instant(),
+                    maxAttempts
             );
             outbox.setLastAttemptAt(clock.instant());
             outbox.incrementRetry();
+            // First failure backoff: 2^0 = 1 second
+            long backoffSeconds = computeBackoffSeconds(outbox.getRetryCount());
+            outbox.setNextAttemptAt(clock.instant().plusSeconds(backoffSeconds));
             outboxRepository.save(outbox);
             log.info("Webhook dispatch deferred to outbox for ticketId={}", ticketId);
         }
@@ -96,16 +110,38 @@ public class WebhookDispatchService {
     @Scheduled(fixedDelay = 5000)
     @Transactional
     public void retryUndeliveredEvents() {
-        List<OutboxEventEntity> undelivered = outboxRepository.findByDeliveredFalse();
-        for (OutboxEventEntity event : undelivered) {
+        List<OutboxEventEntity> pendingEvents = outboxRepository.findByDeliveredFalseAndStatus(OutboxStatus.PENDING);
+        for (OutboxEventEntity event : pendingEvents) {
+            if (event.getNextAttemptAt() != null && clock.instant().isBefore(event.getNextAttemptAt())) {
+                continue;
+            }
+
             boolean success = sendWebhook(event.getPayload());
             event.setLastAttemptAt(clock.instant());
             event.incrementRetry();
+
             if (success) {
                 event.setDelivered(true);
+                event.setStatus(OutboxStatus.DELIVERED);
+            } else {
+                if (event.getRetryCount() >= event.getMaxAttempts()) {
+                    event.setStatus(OutboxStatus.DEAD_LETTER);
+                    log.warn("Outbox event id={} reached max attempts ({}) and marked DEAD_LETTER",
+                            event.getId(), event.getMaxAttempts());
+                } else {
+                    long backoffSeconds = computeBackoffSeconds(event.getRetryCount());
+                    event.setNextAttemptAt(clock.instant().plusSeconds(backoffSeconds));
+                }
             }
             outboxRepository.save(event);
         }
+    }
+
+    public static long computeBackoffSeconds(int retryCount) {
+        // Exponential backoff: 1s, 2s, 4s, 8s, 16s... capped at 300s (5 minutes)
+        int exponent = Math.max(0, retryCount - 1);
+        long backoff = (long) Math.pow(2, Math.min(exponent, 8));
+        return Math.min(300L, backoff);
     }
 
     public boolean sendWebhook(String jsonPayload) {

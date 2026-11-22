@@ -19,5 +19,5 @@ spring:
 
 keyfort:
   connector:
-    secret: "demo-site-connector-hmac-shared-secret-key-material-256bits!!"
-    webhook-url: "http://localhost:8080/api/webhooks/login"
+    secret: ${KEYFORT_CONNECTOR_SECRET:}
+    webhook-url: ${KEYFORT_CONNECTOR_WEBHOOK_URL:http://localhost:8080/api/webhooks/login}

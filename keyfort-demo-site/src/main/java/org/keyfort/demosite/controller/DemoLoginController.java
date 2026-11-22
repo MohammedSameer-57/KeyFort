@@ -1,9 +1,13 @@
 package org.keyfort.demosite.controller;
 
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.keyfort.demosite.entity.TicketEntity;
 import org.keyfort.demosite.service.TicketService;
 import org.keyfort.demosite.service.TicketValidationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -19,33 +23,111 @@ import java.util.Map;
 @Controller
 public class DemoLoginController {
 
+    private static final Logger log = LoggerFactory.getLogger(DemoLoginController.class);
+    private static final String REFERRER_POLICY_HEADER = "Referrer-Policy";
+    private static final String NO_REFERRER = "no-referrer";
+
     private final TicketService ticketService;
 
     public DemoLoginController(TicketService ticketService) {
         this.ticketService = ticketService;
     }
 
-    @GetMapping(value = "/keyfort/login")
-    public String keyfortLogin(@RequestParam(name = "ticket", required = false) String ticket, HttpSession session) {
+    @GetMapping(value = "/keyfort/login", produces = MediaType.TEXT_HTML_VALUE)
+    public ResponseEntity<String> keyfortLoginConfirmation(
+            @RequestParam(name = "ticket", required = false) String ticket
+    ) {
         if (ticket == null || ticket.isBlank()) {
-            return "redirect:/login?error=missing_ticket";
+            return ResponseEntity.status(HttpStatus.FOUND)
+                    .header(HttpHeaders.LOCATION, "/login?error=missing_ticket")
+                    .header(REFERRER_POLICY_HEADER, NO_REFERRER)
+                    .build();
         }
 
         try {
+            // Read-only validation: does not consume the ticket so prefetching or reloading does not burn it
+            TicketEntity validTicket = ticketService.validateTicket(ticket);
+
+            String html = "<!DOCTYPE html>\n" +
+                    "<html lang=\"en\">\n" +
+                    "<head>\n" +
+                    "    <meta charset=\"UTF-8\">\n" +
+                    "    <meta name=\"referrer\" content=\"no-referrer\">\n" +
+                    "    <title>KeyFort Guest Access Confirmation</title>\n" +
+                    "    <style>\n" +
+                    "        body { font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif; background: #0f172a; color: #f8fafc; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }\n" +
+                    "        .card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 28px; width: 360px; box-sizing: border-box; text-align: center; }\n" +
+                    "        h2 { margin-top: 0; font-size: 18px; }\n" +
+                    "        p { font-size: 14px; color: #94a3b8; }\n" +
+                    "        .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; background: #2563eb; color: #fff; margin: 8px 0 16px; }\n" +
+                    "        button { width: 100%; padding: 10px; background: #2563eb; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 14px; }\n" +
+                    "        button:hover { background: #1d4ed8; }\n" +
+                    "    </style>\n" +
+                    "</head>\n" +
+                    "<body>\n" +
+                    "    <div class=\"card\">\n" +
+                    "        <h2>KeyFort Guest Access</h2>\n" +
+                    "        <p>A single-use temporary guest session is ready for account: <strong>" + validTicket.getEntryId() + "</strong></p>\n" +
+                    "        <div class=\"badge\">Scope: " + validTicket.getScope() + "</div>\n" +
+                    "        <form action=\"/keyfort/login\" method=\"post\">\n" +
+                    "            <input type=\"hidden\" name=\"ticket\" value=\"" + validTicket.getTicketToken() + "\">\n" +
+                    "            <button type=\"submit\">Confirm and Enter Site</button>\n" +
+                    "        </form>\n" +
+                    "    </div>\n" +
+                    "</body>\n" +
+                    "</html>";
+
+            return ResponseEntity.ok()
+                    .header(REFERRER_POLICY_HEADER, NO_REFERRER)
+                    .contentType(MediaType.TEXT_HTML)
+                    .body(html);
+        } catch (TicketValidationException e) {
+            return ResponseEntity.status(HttpStatus.FOUND)
+                    .header(HttpHeaders.LOCATION, "/login?error=invalid_ticket")
+                    .header(REFERRER_POLICY_HEADER, NO_REFERRER)
+                    .build();
+        }
+    }
+
+    @PostMapping(value = "/keyfort/login")
+    public ResponseEntity<Void> keyfortLoginConsume(
+            @RequestParam(name = "ticket", required = false) String ticket,
+            HttpSession session
+    ) {
+        if (ticket == null || ticket.isBlank()) {
+            return ResponseEntity.status(HttpStatus.FOUND)
+                    .header(HttpHeaders.LOCATION, "/login?error=missing_ticket")
+                    .header(REFERRER_POLICY_HEADER, NO_REFERRER)
+                    .build();
+        }
+
+        try {
+            // Atomic single-use consumption
             TicketEntity consumed = ticketService.consumeTicket(ticket);
             session.setAttribute("user", "guest-" + consumed.getEntryId());
             session.setAttribute("scope", consumed.getScope());
             session.setAttribute("role", "GUEST_READONLY");
             session.setAttribute("guestExpiresAt", Instant.now().plusSeconds(900).toString());
-            return "redirect:/dashboard";
+
+            // Redirection explicitly contains no ticket query parameter
+            return ResponseEntity.status(HttpStatus.FOUND)
+                    .header(HttpHeaders.LOCATION, "/dashboard")
+                    .header(REFERRER_POLICY_HEADER, NO_REFERRER)
+                    .build();
         } catch (TicketValidationException e) {
-            return "redirect:/login?error=invalid_ticket";
+            return ResponseEntity.status(HttpStatus.FOUND)
+                    .header(HttpHeaders.LOCATION, "/login?error=invalid_ticket")
+                    .header(REFERRER_POLICY_HEADER, NO_REFERRER)
+                    .build();
         }
     }
 
     @GetMapping(value = "/login", produces = MediaType.TEXT_HTML_VALUE)
     @ResponseBody
-    public String loginPage(@RequestParam(name = "error", required = false) String error) {
+    public ResponseEntity<String> loginPage(
+            @RequestParam(name = "error", required = false) String error,
+            HttpServletResponse response
+    ) {
         String errorMsg = "";
         if ("invalid_ticket".equals(error)) {
             errorMsg = "<div class='error'>Invalid or expired login ticket.</div>";
@@ -53,10 +135,11 @@ public class DemoLoginController {
             errorMsg = "<div class='error'>Missing ticket parameter.</div>";
         }
 
-        return "<!DOCTYPE html>\n" +
+        String body = "<!DOCTYPE html>\n" +
                 "<html lang=\"en\">\n" +
                 "<head>\n" +
                 "    <meta charset=\"UTF-8\">\n" +
+                "    <meta name=\"referrer\" content=\"no-referrer\">\n" +
                 "    <title>Demo Site - Login</title>\n" +
                 "    <style>\n" +
                 "        body { font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif; background: #0f172a; color: #f8fafc; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }\n" +
@@ -81,22 +164,37 @@ public class DemoLoginController {
                 "    </div>\n" +
                 "</body>\n" +
                 "</html>";
+
+        return ResponseEntity.ok()
+                .header(REFERRER_POLICY_HEADER, NO_REFERRER)
+                .contentType(MediaType.TEXT_HTML)
+                .body(body);
     }
 
     @PostMapping("/login")
-    public String handleLogin(@RequestParam("username") String username, @RequestParam("password") String password, HttpSession session) {
+    public ResponseEntity<Void> handleLogin(
+            @RequestParam(name = "username") String username,
+            @RequestParam(name = "password") String password,
+            HttpSession session
+    ) {
         session.setAttribute("user", username);
         session.setAttribute("role", "OWNER");
         session.setAttribute("scope", "full");
-        return "redirect:/dashboard";
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .header(HttpHeaders.LOCATION, "/dashboard")
+                .header(REFERRER_POLICY_HEADER, NO_REFERRER)
+                .build();
     }
 
     @GetMapping(value = "/dashboard", produces = MediaType.TEXT_HTML_VALUE)
     @ResponseBody
-    public String dashboard(HttpSession session) {
+    public ResponseEntity<String> dashboard(HttpSession session) {
         String user = (String) session.getAttribute("user");
         if (user == null) {
-            return "redirect:/login";
+            return ResponseEntity.status(HttpStatus.FOUND)
+                    .header(HttpHeaders.LOCATION, "/login")
+                    .header(REFERRER_POLICY_HEADER, NO_REFERRER)
+                    .build();
         }
         String role = String.valueOf(session.getAttribute("role"));
         String scope = String.valueOf(session.getAttribute("scope"));
@@ -104,10 +202,11 @@ public class DemoLoginController {
 
         String expiresHtml = expires != null ? "<p>Guest Expiry: <code>" + expires + "</code></p>" : "";
 
-        return "<!DOCTYPE html>\n" +
+        String body = "<!DOCTYPE html>\n" +
                 "<html lang=\"en\">\n" +
                 "<head>\n" +
                 "    <meta charset=\"UTF-8\">\n" +
+                "    <meta name=\"referrer\" content=\"no-referrer\">\n" +
                 "    <title>Demo Site - Dashboard</title>\n" +
                 "    <style>\n" +
                 "        body { font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif; background: #0f172a; color: #f8fafc; padding: 32px; }\n" +
@@ -126,6 +225,11 @@ public class DemoLoginController {
                 "    </div>\n" +
                 "</body>\n" +
                 "</html>";
+
+        return ResponseEntity.ok()
+                .header(REFERRER_POLICY_HEADER, NO_REFERRER)
+                .contentType(MediaType.TEXT_HTML)
+                .body(body);
     }
 
     @GetMapping("/api/session")
@@ -135,10 +239,12 @@ public class DemoLoginController {
         if (user == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        return ResponseEntity.ok(Map.of(
-                "user", user,
-                "role", session.getAttribute("role"),
-                "scope", session.getAttribute("scope")
-        ));
+        return ResponseEntity.ok()
+                .header(REFERRER_POLICY_HEADER, NO_REFERRER)
+                .body(Map.of(
+                        "user", user,
+                        "role", session.getAttribute("role"),
+                        "scope", session.getAttribute("scope")
+                ));
     }
 }

@@ -56,6 +56,19 @@ public class TicketService {
         });
     }
 
+    @Transactional(readOnly = true)
+    public TicketEntity validateTicket(String token) {
+        Objects.requireNonNull(token, "token must not be null");
+        TicketEntity ticket = ticketRepository.findByTicketToken(token)
+                .orElseThrow(() -> new TicketValidationException("Invalid or expired login ticket"));
+
+        Instant now = clock.instant();
+        if (ticket.isUsed() || ticket.isRevoked() || !now.isBefore(ticket.getExpiresAt())) {
+            throw new TicketValidationException("Invalid or expired login ticket");
+        }
+        return ticket;
+    }
+
     @Transactional
     public TicketEntity consumeTicket(String token) {
         Objects.requireNonNull(token, "token must not be null");
