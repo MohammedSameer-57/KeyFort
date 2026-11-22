@@ -1,158 +1,71 @@
-# 🛡️ KeyFort — Ephemeral Passwords & Zero-Knowledge Auto-Rotation
+# KeyFort
 
-> **One master password for your vault. Single-use disposable passwords for the outside world. Zero loopholes.**
+KeyFort is a zero-knowledge credential vault featuring broker-assisted ephemeral guest passes and post-login key rotation.
 
----
+## System Architecture
 
-## 💡 The Core Problem: The "Camera & Screenshot" Leak
+The project consists of three primary modules:
 
-When you share a password with a friend over WhatsApp or type it into an untrusted computer at a library or cafe:
-- Your friend can **take a photo** of the screen with a phone camera.
-- They can **write it down** or save it to their notes.
-- Anyone **shoulder-surfing** behind you can memorize or peek at it.
+- **keyfort-core**: Pure Java 17 cryptographic engine. Implements PBKDF2-HMAC-SHA256 (600,000 iterations), AES-256-GCM authenticated encryption, RFC 5869 HKDF-SHA256 key derivation, RSA-3072-OAEP recovery key wrapping, and an append-only hash-chained ledger. The module maintains compatibility with Android runtimes below API 34 by avoiding `java.util.HexFormat`.
+- **keyfort-server**: Spring Boot 3 web application providing REST endpoints for device registration, risk-based access evaluation, hash-chained ledger auditing, and encrypted vault payload synchronization.
+- **keyfort-android**: Native Android application implemented using Java 17, XML layouts, AndroidX Fragments, Room persistence, and Android Keystore biometric authentication.
 
-With traditional password managers (1Password, Bitwarden, Apple Keychain), once a password is seen or shared, **it remains valid forever** until you manually go change it. This is a massive security loophole known as the *Analog Hole*.
+## Product Concept: Ephemeral Guest Passes
 
----
+KeyFort provides a mechanism to grant temporary, single-use access to an account on a third-party service without revealing the owner's permanent password.
 
-## 🔒 The KeyFort Solution: Complete Privacy in 4 Steps
+1. **Brokerage via Connector SPI**: For cooperating sites integrating with the KeyFort connector interface, the site provisions a short-lived temporary credential.
+2. **Single-Use Execution**: The guest redeems a high-entropy ephemeral token to authenticate on the target service.
+3. **Revocation and Rotation**: Upon receipt of a verified login webhook from the target site, the temporary credential is revoked, the token is burned, and KeyFort requests an atomic vault key rotation.
+4. **Assisted Mode**: For target sites lacking connector integration, KeyFort operates in an assisted mode that prompts the owner with an explicit reminder to rotate the real password after sharing.
 
-KeyFort eliminates this loophole by ensuring that **the real password is never exposed to the outside world**, and any shared access **self-destructs after one single login**:
+For threat boundaries, attacker profiles, and explicit limitations (such as active remote sessions and optical recording during live display), refer to [THREAT_MODEL.md](THREAT_MODEL.md).
 
-```
- ┌──────────────────────┐
- │  Step 1: Master Lock │  ➔ Unlock your vault using your Master Password
- └──────────┬───────────┘     (PBKDF2 600,000 rounds + AES-256-GCM)
-            ▼
- ┌──────────────────────┐
- │ Step 2: Guest Key    │  ➔ Generate a simple 1-Time Disposable Guest Pass
- └──────────┬───────────┘     (Send to friend on WhatsApp or enter on untrusted website)
-            ▼
- ┌──────────────────────┐
- │ Step 3: 1-Time Login │  ➔ Friend or website logs in ONCE
- └──────────┬───────────┘
-            ▼
- ┌──────────────────────┐
- │ Step 4: Auto-Rotate  │  ➔ Guest key is permanently killed & burned!
- └──────────────────────┘     Encryption key rotates automatically.
-                              Hacker captures only useless AES-256 ciphertext.
-```
+## Prototype and Simulation Notice
 
-### 1. Master Vault Unlock
-Your vault is locked behind your private **Master Password**. Key derivation uses **PBKDF2 with 600,000 SHA-256 iterations** to derive a Key Encryption Key (KEK), which protects a 256-bit Data Encryption Key (DEK).
+The visual demonstration available in `preview.html` and the GitHub Pages deployment at `https://mohammedsameer-57.github.io/KeyFort/` are simulation prototypes only. They illustrate the target workflow and do not communicate with the backend server or execute cryptographic rotation. Integration of the live proof mode is scheduled for Phase 7.
 
-### 2. Disposable Guest Password
-When sharing an account (like Netflix) with a friend or logging in on a sketchy public computer, KeyFort generates a **1-time temporary guest token** (e.g. `TEMP-NETF-8921-XQ`). You never give away your real master credentials.
-
-### 3. Single-Login Execution
-The friend uses the guest token to authenticate for that specific session.
-
-### 4. Automatic Key Rotation (Zero Loopholes)
-The moment authentication succeeds:
-1. The temporary guest token is **permanently revoked and burned**.
-2. KeyFort executes an **atomic key rotation**, generating a fresh 256-bit encryption key and bumping the version.
-3. The underlying credentials are re-sealed with **AES-256-GCM** using authenticated additional data (AAD).
-4. If a hacker peeked over your friend's shoulder, took a photo with a camera, or sniffed the network, **the captured passcode is 100% DEAD**. Attempting to reuse it results in instant access denial.
-
----
-
-## 🌐 Is This Idea Novel?
-
-**Yes.** Here is why:
-
-| Feature | Standard Password Managers (Bitwarden, 1Password) | Enterprise IAM (AWS STS, Kerberos) | **KeyFort** |
-| :--- | :--- | :--- | :--- |
-| **Audience** | Everyday consumers | Cloud engineers & sysadmins | **Everyday consumers** |
-| **Password Sharing** | Shares permanent plaintext secret | Issue short-lived STS tokens | **1-time disposable passcodes** |
-| **Camera / Shoulder-Surfing Defense** | ❌ None (password stays valid) | N/A (CLI / machine-to-machine) | **✅ Immune (rotates after 1 login)** |
-| **Key Architecture** | Static Master Key | Centralized Key Server | **Zero-Knowledge Client-Side Auto-Rotation** |
-| **Loophole Risk** | High (human error / notes / camera) | Low (complex configuration) | **Zero (self-destructing tokens)** |
-
-KeyFort bridges the gap between high-end enterprise ephemeral token systems and consumer-friendly password managers, bringing camera-proof, zero-knowledge privacy to personal devices.
-
----
-
-## 🚀 Real-World Usage & Deployment
-
-### 1. 🌐 Live Public Web App (Any Device / Phone / Laptop)
-KeyFort is hosted live via GitHub Pages:
-👉 **[https://mohammedsameer-57.github.io/KeyFort/](https://mohammedsameer-57.github.io/KeyFort/)**
-
-You can open this URL directly on your phone's browser, share it with a friend on WhatsApp, and test the 4-step Ephemeral Key & Auto-Rotation flow anywhere in the world in real time!
-
----
-
-### 2. 📱 Native Android Mobile App (`.apk`)
-A native Android application (`keyfort-android`) is built automatically on every push via **GitHub Actions**:
-1. Go to the **[Actions Tab](https://github.com/MohammedSameer-57/KeyFort/actions)** on GitHub.
-2. Select the latest **Build Android APK** workflow run.
-3. Download the **`KeyFort-Mobile-App`** artifact containing `KeyFort-debug.apk`.
-4. Install it directly onto your Android device to run KeyFort natively with Biometric fingerprint authentication.
-
----
-
-### 3. ⚡ Share Local Server to Your Phone (`SHARE_TO_PHONE.bat`)
-Want to run the backend on your laptop and access it live on your phone right now?
-1. Start the server: double-click **`START_KEYFORT.bat`**.
-2. Double-click **`SHARE_TO_PHONE.bat`**.
-3. It generates an instant, secure public HTTPS link (e.g. `https://xxxx.lhrtunnel.link`). Open that link on your phone (even over 5G/mobile data)!
-
----
-
-### 4. ☁️ 24/7 Cloud Server Deployment (Render / Railway / Fly.io)
-The backend includes a production-ready multi-stage **`Dockerfile`**:
-1. Connect this GitHub repository to [Render.com](https://render.com) or [Railway.app](https://railway.app).
-2. Choose **Docker** as the runtime.
-3. Render will build and run the Spring Boot server with 100% free hosting and a permanent public HTTPS API!
-
----
-
-### 5. 💻 Local Developer Mode
-- **Instant Simulator:** Double-click **`preview.html`** in this folder.
-- **Spring Boot Live Backend:** Double-click **`START_KEYFORT.bat`** and visit **[http://localhost:8080](http://localhost:8080)**.
-
----
-
-## 📁 Repository Structure
+## Repository Structure
 
 ```text
 KeyFort/
-├── keyfort-core/          # Pure Java 17 Cryptographic Engine
-│   ├── Crypto.java        # PBKDF2 (600k rounds), AES-256-GCM, HKDF-SHA256, RSA-3072
-│   ├── Vault.java         # Zero-knowledge vault, atomic key rotation, session handling
-│   ├── ledger/            # Append-only tamper-evident audit ledger
-│   └── risk/              # Real-time behavioral risk engine & device trust registry
-│
-├── keyfort-server/        # Spring Boot 3 Web Application & REST API
-│   ├── config/            # Security filters & endpoint permissions
-│   ├── controller/        # Vault unlock, rotation, and audit endpoints
-│   └── src/main/resources/static/ # Interactive UI hosted on http://localhost:8080
-│
-├── keyfort-android/       # Native Android Application (Jetpack Compose & Material 3)
-│   └── BiometricPrompt    # Hardware-backed Android Keystore integration
-│
-├── docs/index.html        # GitHub Pages production deployment entrypoint
-├── preview.html           # Standalone interactive 4-step security flow simulator
-├── Dockerfile             # Multi-stage container for cloud deployment (Render/Railway)
-├── START_KEYFORT.bat      # 1-click launcher for Windows
-├── SHARE_TO_PHONE.bat     # 1-click instant public tunnel for mobile testing
-└── START_KEYFORT.ps1      # PowerShell launcher for Windows
+├── keyfort-core/          # Java 17 cryptographic primitives and state machine
+├── keyfort-server/        # Spring Boot 3 REST API and persistence layer
+├── keyfort-android/       # Android application (Java, XML, Fragments)
+├── docs/
+│   ├── API.md             # REST API specification
+│   ├── DECISIONS.md       # Architectural Decision Records (ADRs)
+│   ├── RUNNING.md         # Compilation, test execution, and deployment instructions
+│   └── index.html         # Hosted simulation prototype
+├── scripts/
+│   ├── START_KEYFORT.bat  # Windows Batch server launcher
+│   ├── START_KEYFORT.ps1  # Windows PowerShell server launcher
+│   ├── OPEN_DEMO.bat      # Browser launcher for simulation prototype
+│   └── SHARE_TO_PHONE.bat # SSH reverse port forward for mobile network testing
+├── preview.html           # Standalone browser simulation prototype
+├── Dockerfile             # Multi-stage container definition for keyfort-server
+├── THREAT_MODEL.md        # System threat model and non-goals
+├── CONTRIBUTING.md        # Contribution guidelines
+├── SECURITY.md            # Vulnerability reporting policy
+└── LICENSE                # MIT License
 ```
 
----
+## Build and Execution
 
-## 🧪 Cryptographic Verification
+Operational procedures for executing tests, starting the server, and building artifacts are documented in [docs/RUNNING.md](docs/RUNNING.md).
 
-KeyFort includes 27 rigorous unit tests covering encryption integrity, bad-tag tampering detection, atomic key rotation, and risk assessment:
+Quick test run:
 
 ```bash
-# Run all unit tests
-gradlew.bat :keyfort-core:test
+# Windows
+.\gradlew.bat test
+
+# Linux / macOS
+./gradlew test
 ```
 
-All 27 cryptographic assertions pass with **100% success rate**.
+Architectural decisions and trade-offs are logged in [docs/DECISIONS.md](docs/DECISIONS.md).
 
----
+## License
 
-## 📄 License
-This project is open-source under the [MIT License](LICENSE).
+This project is licensed under the [MIT License](LICENSE).

@@ -1,0 +1,3 @@
+@echo off
+echo Starting reverse tunnel for port 8080...
+ssh -o StrictHostKeyChecking=no -R 80:localhost:8080 nokey@localhost.run
