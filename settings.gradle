@@ -10,6 +10,7 @@ rootProject.name = 'keyfort'
 
 include 'keyfort-core'
 include 'keyfort-server'
+include 'keyfort-demo-site'
 
 boolean hasAndroidSdk = false
 def envAndroidHome = System.getenv('ANDROID_HOME') ?: System.getenv('ANDROID_SDK_ROOT')

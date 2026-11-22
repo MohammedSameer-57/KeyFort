@@ -1,0 +1,23 @@
+server:
+  port: 9090
+
+spring:
+  application:
+    name: keyfort-demo-site
+
+  datasource:
+    url: jdbc:h2:mem:demositedb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+
+keyfort:
+  connector:
+    secret: "demo-site-connector-hmac-shared-secret-key-material-256bits!!"
+    webhook-url: "http://localhost:8080/api/webhooks/login"
