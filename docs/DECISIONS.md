@@ -109,3 +109,22 @@ Option 2. Lifecycle progression is `CREATED -> ISSUED -> REDEEMED -> CONSUMED ->
 ### Trade-offs
 If a site fails to send a consumption confirmation or credential revocation, vault key rotation is deferred until the pass expires or is manually revoked.
 
+## 0007: One-time login tickets via SiteConnector SPI and AssistedConnector fallback
+
+### Status
+Accepted
+
+### Context
+Sharing credentials directly exposes plaintext passwords to the recipient's device, enabling retention, screenshotting, or shoulder-surfing. The guest credential must never equal the owner's permanent password or expose the vault DEK.
+
+### Options Considered
+1. Provision temporary synthetic usernames and passwords injected into the target site via automated browser extensions or scraping.
+2. Broker a cryptographic one-time login ticket (`TicketHandle`) directly with cooperating sites via a standardized SPI (`SiteConnector`), with an explicit assisted reminder mode (`AssistedConnector`) for unintegrated sites.
+
+### Decision
+Option 2. The guest credential is a single-use login ticket bound to an account and scope with a strict TTL. The recipient's browser receives only a ticketed redirect URL, never a plaintext password. This flow works end-to-end strictly on services implementing the connector SPI (e.g. `keyfort-demo-site`). Services lacking connector integration fall back to `AssistedConnector`, which generates no remote credentials and instructs the owner to rotate the permanent password manually.
+
+### Trade-offs
+End-to-end zero-knowledge guest authentication requires target site cooperation via the connector SPI. Unintegrated sites cannot automatically enforce single-use revocation or automated login webhooks.
+
+
