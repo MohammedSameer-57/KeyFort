@@ -74,12 +74,20 @@ public class WebhookDispatchService {
     }
 
     public void dispatchLoginObserved(String ticketId, String entryId, String scope) {
-        Map<String, Object> payloadMap = Map.of(
-                "ticketId", ticketId,
-                "entryId", entryId,
-                "scope", scope,
-                "timestamp", clock.instant().toString()
-        );
+        dispatchLoginObserved(ticketId, entryId, scope, null);
+    }
+
+    public void dispatchLoginObserved(String ticketId, String entryId, String scope, String sessionId) {
+        String eventId = UUID.randomUUID().toString();
+        Map<String, Object> payloadMap = new java.util.HashMap<>();
+        payloadMap.put("eventId", eventId);
+        payloadMap.put("ticketId", ticketId);
+        payloadMap.put("entryId", entryId);
+        payloadMap.put("scope", scope);
+        if (sessionId != null) {
+            payloadMap.put("sessionId", sessionId);
+        }
+        payloadMap.put("timestamp", clock.instant().toString());
 
         String jsonPayload;
         try {
@@ -91,7 +99,7 @@ public class WebhookDispatchService {
         boolean delivered = sendWebhook(jsonPayload);
         if (!delivered) {
             OutboxEventEntity outbox = new OutboxEventEntity(
-                    UUID.randomUUID().toString(),
+                    eventId,
                     "LOGIN_OBSERVED",
                     jsonPayload,
                     clock.instant(),
