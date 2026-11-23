@@ -467,13 +467,13 @@ class GuestPassOrchestrationIntegrationTest {
         );
         entryRepository.save(bobEntry);
 
-        // 2. alice-owner attempts to create a pass for bob's entry -> 403
+        // 2. alice-owner attempts to create a pass for bob's entry -> 404 (prevents resource enumeration)
         CreateGuestPassRequest illegalCreate = new CreateGuestPassRequest("entry-bob-private", "read", 900);
         mockMvc.perform(post("/api/guest-passes")
                         .header("Authorization", "Bearer " + userJwtToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(illegalCreate)))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isNotFound());
 
         // 3. alice-owner creates a pass for her own entry
         CreateGuestPassRequest aliceCreate = new CreateGuestPassRequest("entry-alice-own", "read", 900);
@@ -493,10 +493,10 @@ class GuestPassOrchestrationIntegrationTest {
                 .andReturn();
         String bobToken = objectMapper.readValue(bobAuth.getResponse().getContentAsString(), AuthResponse.class).token();
 
-        // 5. Bob attempts to revoke alice's pass -> 403
+        // 5. Bob attempts to revoke alice's pass -> 404
         mockMvc.perform(delete("/api/guest-passes/" + alicePass.id())
                         .header("Authorization", "Bearer " + bobToken))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -572,5 +572,74 @@ class GuestPassOrchestrationIntegrationTest {
         trustedReq.setRemoteAddr("127.0.0.1");
         trustedReq.addHeader("X-Forwarded-For", "203.0.113.44, 10.0.0.1");
         assertEquals("203.0.113.44", resolver.resolveClientIp(trustedReq));
+    }
+
+    @Test
+    @DisplayName("No token, secret, ticket ID, or cookie value appears in log lines across full lifecycle")
+    void testNoTokenOrSecretAppearsInLogsAcrossLifecycle() throws Exception {
+        ch.qos.logback.classic.Logger rootLogger = (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
+        ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent> listAppender = new ch.qos.logback.core.read.ListAppender<>();
+        listAppender.start();
+        rootLogger.addAppender(listAppender);
+
+        try {
+            // 1. Create pass
+            CreateGuestPassRequest createReq = new CreateGuestPassRequest("entry-site-1", "read-only", 900);
+            MvcResult createResult = mockMvc.perform(post("/api/guest-passes")
+                            .header("Authorization", "Bearer " + userJwtToken)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(createReq)))
+                    .andExpect(status().isCreated())
+                    .andReturn();
+
+            CreateGuestPassResponse createResp = objectMapper.readValue(createResult.getResponse().getContentAsString(), CreateGuestPassResponse.class);
+            String rawToken = createResp.token();
+            String rawSecret = rawToken.split("\\.")[1];
+
+            // 2. Redeem pass
+            RedeemGuestPassRequest redeemReq = new RedeemGuestPassRequest(rawToken);
+            MvcResult redeemResult = mockMvc.perform(post("/api/guest-passes/redeem")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(redeemReq)))
+                    .andExpect(status().isOk())
+                    .andReturn();
+
+            GuestPassEntity redeemedEntity = guestPassRepository.findById(createResp.id()).orElseThrow();
+            String ticketId = redeemedEntity.getCredentialRef();
+            String cookieValue = "mock-session-cookie-val-98765";
+
+            // 3. Webhook event
+            long ts = Instant.now().getEpochSecond();
+            String nonce = "webhook-nonce-" + Crypto.random(6);
+            Map<String, Object> webhookPayload = Map.of(
+                    "eventId", "evt-log-test-" + Crypto.random(4),
+                    "ticketId", ticketId,
+                    "entryId", "entry-site-1",
+                    "scope", "read-only",
+                    "timestamp", Instant.now().toString()
+            );
+            String webhookJson = objectMapper.writeValueAsString(webhookPayload);
+            String signature = HmacSigner.sign(CONNECTOR_SECRET, "POST", "/api/connector/events", ts, nonce, webhookJson);
+
+            mockMvc.perform(post("/api/connector/events")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .header("X-KeyFort-Timestamp", String.valueOf(ts))
+                            .header("X-KeyFort-Nonce", nonce)
+                            .header("X-KeyFort-Signature", signature)
+                            .content(webhookJson))
+                    .andExpect(status().isOk());
+
+            // 4. Assert no sensitive data appears in any captured log event
+            assertFalse(listAppender.list.isEmpty(), "Logs should have been recorded during lifecycle");
+            for (ch.qos.logback.classic.spi.ILoggingEvent event : listAppender.list) {
+                String msg = event.getFormattedMessage();
+                assertFalse(msg.contains(rawToken), "Log must not contain raw token");
+                assertFalse(msg.contains(rawSecret), "Log must not contain token secret");
+                assertFalse(msg.contains(ticketId), "Log must not contain ticket ID");
+                assertFalse(msg.contains(cookieValue), "Log must not contain cookie value");
+            }
+        } finally {
+            rootLogger.detachAppender(listAppender);
+        }
     }
 }

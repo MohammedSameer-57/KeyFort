@@ -108,14 +108,15 @@ public class GuestPassOrchestrationService {
         Objects.requireNonNull(scope, "scope must not be null");
         Objects.requireNonNull(ttl, "ttl must not be null");
 
-        // Verify entry ownership: user A cannot create pass for user B's entry
+        // Verify entry ownership: return 404 instead of 403 to prevent entry enumeration
         Optional<EntryEntity> entryOpt = entryRepository.findById(entryId);
         if (entryOpt.isPresent() && !ownerUserId.equals(entryOpt.get().getUserId())) {
-            throw new AccessDeniedException("Forbidden: Entry does not belong to authenticated user");
+            throw new GuestPassNotFoundException("Entry not found: " + entryId);
         }
 
         GuestPassService coreService = new GuestPassService(store, clock);
         IssuedToken issued = coreService.create(entryId, scope, ttl);
+        log.info("Created guest pass id={} for entryId={}", issued.id(), entryId);
 
         repository.findById(issued.id()).ifPresent(e -> {
             e.setOwnerUserId(ownerUserId);
@@ -174,6 +175,7 @@ public class GuestPassOrchestrationService {
         if (!casSuccess) {
             throw new IllegalStateException("Guest pass redemption failed due to concurrent modification");
         }
+        log.info("Redeemed guest pass id={}", pass.id());
 
         return ticket.redirectUrl();
     }
@@ -238,6 +240,7 @@ public class GuestPassOrchestrationService {
 
             String passPrefix = Crypto.toHex(Crypto.sha256(pass.id().getBytes(StandardCharsets.UTF_8))).substring(0, 16);
             ledgerService.append("GUEST_PASS_BURNED", "passPrefix=" + passPrefix + ", entryId=" + pass.entryId());
+            log.info("Processed login webhook for eventId={}, passId={}", eventId, pass.id());
         }
 
         processedEventRepository.save(new ProcessedEventEntity(eventId, ticketId, clock.instant()));
@@ -250,7 +253,7 @@ public class GuestPassOrchestrationService {
                 .orElseThrow(() -> new GuestPassNotFoundException("Guest pass not found: " + passId));
 
         if (ownerUserId != null && entity.getOwnerUserId() != null && !ownerUserId.equals(entity.getOwnerUserId())) {
-            throw new AccessDeniedException("Forbidden: Pass does not belong to authenticated user");
+            throw new GuestPassNotFoundException("Guest pass not found: " + passId);
         }
 
         GuestPass pass = entity.toDomain();

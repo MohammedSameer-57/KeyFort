@@ -74,6 +74,7 @@ class DemoSiteIntegrationTest {
 
         AtomicInteger successes = new AtomicInteger(0);
         AtomicInteger failures = new AtomicInteger(0);
+        java.util.concurrent.ConcurrentLinkedQueue<Throwable> unexpectedExceptions = new java.util.concurrent.ConcurrentLinkedQueue<>();
 
         for (int i = 0; i < threadCount; i++) {
             executor.submit(() -> {
@@ -81,10 +82,10 @@ class DemoSiteIntegrationTest {
                     startGate.await();
                     ticketService.consumeTicket(token);
                     successes.incrementAndGet();
-                } catch (TicketValidationException e) {
+                } catch (TicketValidationException | org.springframework.dao.OptimisticLockingFailureException expected) {
                     failures.incrementAndGet();
-                } catch (Exception e) {
-                    failures.incrementAndGet();
+                } catch (Throwable unexpected) {
+                    unexpectedExceptions.add(unexpected);
                 } finally {
                     finishGate.countDown();
                 }
@@ -95,6 +96,7 @@ class DemoSiteIntegrationTest {
         finishGate.await();
         executor.shutdown();
 
+        assertTrue(unexpectedExceptions.isEmpty(), "Unexpected exceptions occurred during ticket consumption race: " + unexpectedExceptions);
         assertEquals(1, successes.get(), "Exactly one consumer must win ticket consumption");
         assertEquals(49, failures.get(), "Remaining 49 concurrent attempts must be rejected");
 
