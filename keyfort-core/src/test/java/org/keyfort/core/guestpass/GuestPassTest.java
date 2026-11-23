@@ -191,6 +191,7 @@ class GuestPassTest {
 
         AtomicInteger successes = new AtomicInteger(0);
         AtomicInteger failures = new AtomicInteger(0);
+        java.util.concurrent.ConcurrentLinkedQueue<Throwable> unexpectedExceptions = new java.util.concurrent.ConcurrentLinkedQueue<>();
 
         for (int i = 0; i < threadCount; i++) {
             final String credRef = "thread-ref-" + i;
@@ -199,8 +200,10 @@ class GuestPassTest {
                     startGate.await();
                     service.redeem(issued.rawToken(), credRef);
                     successes.incrementAndGet();
-                } catch (Exception expected) {
+                } catch (IllegalTransitionException | ConcurrentMutationException expected) {
                     failures.incrementAndGet();
+                } catch (Throwable unexpected) {
+                    unexpectedExceptions.add(unexpected);
                 } finally {
                     finishGate.countDown();
                 }
@@ -211,6 +214,7 @@ class GuestPassTest {
         finishGate.await();
         executor.shutdown();
 
+        assertTrue(unexpectedExceptions.isEmpty(), "Unexpected exceptions occurred during race: " + unexpectedExceptions);
         assertEquals(1, successes.get(), "Exactly one caller must win the redemption race");
         assertEquals(49, failures.get(), "All other 49 callers must be rejected");
 

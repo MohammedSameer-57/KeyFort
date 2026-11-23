@@ -20,6 +20,10 @@ public class GuestPassService {
     private final Vault vault;
     private final GuestPassListener listener;
 
+    public GuestPassService(GuestPassStore store, Clock clock) {
+        this(store, clock, null, null, GuestPassListener.NOOP);
+    }
+
     public GuestPassService(
             GuestPassStore store,
             Clock clock,

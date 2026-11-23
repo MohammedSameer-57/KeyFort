@@ -128,3 +128,40 @@ Option 2. The guest credential is a single-use login ticket bound to an account 
 End-to-end zero-knowledge guest authentication requires target site cooperation via the connector SPI. Unintegrated sites cannot automatically enforce single-use revocation or automated login webhooks.
 
 
+
+## 0008: Server-side rotation-pending signaling for zero-knowledge client vault rotation
+
+### Status
+Accepted
+
+### Context
+When a guest pass reaches `BURNED`, the vault key must rotate to invalidate any previous state. However, the KeyFort server adheres to a zero-knowledge security architecture: the server never possesses the master password, KEK, or unencrypted DEK. Therefore, the server cannot re-encrypt vault entries directly.
+
+### Options Considered
+1. Store an escrow copy of the DEK on the server to allow server-side re-encryption.
+2. Set a persistent `rotation_pending` flag on the vault entity; the owner's client observes this flag upon next unlock or sync, rotates the DEK client-side, re-encrypts all entries under the new DEK, updates the wrapped DEKs, and uploads the new vault state.
+
+### Decision
+Option 2. The server strictly sets `rotationPending = true` on the owner's `VaultEntity` when a guest pass transitions to `BURNED`. The owner's client application detects `rotationPending` during the next local unlock or sync, rotates the key locally using the master secret in memory, and submits the rotated vault bundle via `PUT /vault/sync`.
+
+### Trade-offs
+Vault rotation is deferred until the owner next opens their vault client. Until then, the server records the pending rotation status and refuses conflicting operations until the client synchronizes the new key version.
+
+## 0009: Client IP resolution via trusted proxy verification for rate limiting
+
+### Status
+Accepted
+
+### Context
+`POST /api/guest-passes/redeem` is an unauthenticated endpoint rate-limited per IP and per pass ID to prevent brute-force attacks against high-entropy tokens. If `X-Forwarded-For` is accepted unconditionally from arbitrary HTTP clients, an attacker can trivially forge header values to bypass rate limiting or conduct denial-of-service against legitimate IP addresses.
+
+### Options Considered
+1. Always use `request.getRemoteAddr()`. Fails when deployed behind reverse proxies or load balancers as all traffic appears from internal proxy addresses.
+2. Unconditionally trust `X-Forwarded-For`. Vulnerable to trivial spoofing by untrusted clients.
+3. Validate immediate peer address (`request.getRemoteAddr()`) against configured trusted proxies (`keyfort.rate-limit.trusted-proxies`). Only extract client IP from `X-Forwarded-For` when arriving from a trusted proxy; otherwise, strictly use `request.getRemoteAddr()`.
+
+### Decision
+Option 3. The server inspects `request.getRemoteAddr()`. If and only if the peer IP is explicitly listed in `keyfort.rate-limit.trusted-proxies`, the client IP from `X-Forwarded-For` is extracted. Otherwise, `X-Forwarded-For` is discarded, and the direct socket address is used as the client identifier.
+
+### Trade-offs
+Deployments behind reverse proxies must configure `KEYFORT_TRUSTED_PROXIES` environment variable with proxy IP addresses or subnets.

@@ -74,6 +74,7 @@ class DemoSiteIntegrationTest {
 
         AtomicInteger successes = new AtomicInteger(0);
         AtomicInteger failures = new AtomicInteger(0);
+        java.util.concurrent.ConcurrentLinkedQueue<Throwable> unexpectedExceptions = new java.util.concurrent.ConcurrentLinkedQueue<>();
 
         for (int i = 0; i < threadCount; i++) {
             executor.submit(() -> {
@@ -81,10 +82,10 @@ class DemoSiteIntegrationTest {
                     startGate.await();
                     ticketService.consumeTicket(token);
                     successes.incrementAndGet();
-                } catch (TicketValidationException e) {
+                } catch (TicketValidationException | org.springframework.dao.OptimisticLockingFailureException expected) {
                     failures.incrementAndGet();
-                } catch (Exception e) {
-                    failures.incrementAndGet();
+                } catch (Throwable unexpected) {
+                    unexpectedExceptions.add(unexpected);
                 } finally {
                     finishGate.countDown();
                 }
@@ -95,6 +96,7 @@ class DemoSiteIntegrationTest {
         finishGate.await();
         executor.shutdown();
 
+        assertTrue(unexpectedExceptions.isEmpty(), "Unexpected exceptions occurred during ticket consumption race: " + unexpectedExceptions);
         assertEquals(1, successes.get(), "Exactly one consumer must win ticket consumption");
         assertEquals(49, failures.get(), "Remaining 49 concurrent attempts must be rejected");
 
@@ -123,6 +125,50 @@ class DemoSiteIntegrationTest {
 
         TicketValidationException ex = assertThrows(TicketValidationException.class, () -> ticketService.consumeTicket(ticket.getTicketToken()));
         assertEquals("Invalid or expired login ticket", ex.getMessage());
+    }
+
+    @Test
+    @DisplayName("Webhook failure stores event in outbox and retry updates attempt count")
+    void testWebhookOutboxAndRetry() {
+        outboxRepository.deleteAll();
+
+        WebhookDispatchService failingService = new WebhookDispatchService(
+                outboxRepository,
+                objectMapper,
+                new String(SECRET, StandardCharsets.UTF_8),
+                "http://127.0.0.1:59999/unreachable/webhook"
+        );
+
+        failingService.dispatchLoginObserved("ticket-outbox-legacy-1", "entry-legacy", "read-only");
+
+        List<OutboxEventEntity> undelivered = outboxRepository.findByDeliveredFalse();
+        assertEquals(1, undelivered.size());
+        OutboxEventEntity event = undelivered.get(0);
+        assertFalse(event.isDelivered());
+        assertEquals(1, event.getRetryCount());
+        assertTrue(event.getPayload().contains("ticket-outbox-legacy-1"));
+    }
+
+    @Test
+    @DisplayName("Second use of same ticket via HTTP redirects to login with invalid_ticket error")
+    void testSecondUseOfTicketViaHttpFails() throws Exception {
+        TicketEntity ticket = ticketService.createTicket("entry-reuse-explicit", "read-only", Duration.ofMinutes(15));
+        MockHttpSession session1 = new MockHttpSession();
+        MockHttpSession session2 = new MockHttpSession();
+
+        mockMvc.perform(post("/keyfort/login")
+                        .param("ticket", ticket.getTicketToken())
+                        .session(session1))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Referrer-Policy", "no-referrer"))
+                .andExpect(redirectedUrl("/dashboard"));
+
+        mockMvc.perform(post("/keyfort/login")
+                        .param("ticket", ticket.getTicketToken())
+                        .session(session2))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Referrer-Policy", "no-referrer"))
+                .andExpect(redirectedUrl("/login?error=invalid_ticket"));
     }
 
     @Test
