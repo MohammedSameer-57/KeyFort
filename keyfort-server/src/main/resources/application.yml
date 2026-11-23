@@ -6,13 +6,13 @@ spring:
     name: keyfort-server
 
   datasource:
-    url: jdbc:h2:mem:keyfortdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-    driver-class-name: org.h2.Driver
-    username: sa
-    password: ""
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:keyfort}}
+    driver-class-name: org.postgresql.Driver
+    username: ${SPRING_DATASOURCE_USERNAME:${DB_USER:postgres}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD:}}
 
   jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: update
     show-sql: false
@@ -20,15 +20,12 @@ spring:
       hibernate:
         format_sql: false
 
-  h2:
-    console:
-      enabled: false
-
 keyfort:
   jwt:
-    # 256-bit secure secret for HMAC-SHA256 JWT signing from environment
-    secret: ${KEYFORT_JWT_SECRET:keyfort-secret-key-for-jwt-signing-must-be-at-least-256-bits-long!!}
+    secret: ${KEYFORT_JWT_SECRET:}
     expiration-ms: 900000 # 15 minutes
   connector:
     secret: ${KEYFORT_CONNECTOR_SECRET:}
     base-url: ${KEYFORT_CONNECTOR_BASE_URL:http://localhost:9090}
+  cors:
+    allowed-origins: ${KEYFORT_CORS_ALLOWED_ORIGINS:http://localhost:8080,http://127.0.0.1:8080,http://localhost:9090,http://localhost:3000}

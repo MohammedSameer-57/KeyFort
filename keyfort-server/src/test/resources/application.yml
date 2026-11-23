@@ -1,4 +1,19 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:keyfortdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
+
 keyfort:
+  jwt:
+    secret: "dev-only-insecure-test-jwt-secret-material-must-be-at-least-256-bits-long!!"
   connector:
     secret: "dev-only-insecure-test-connector-hmac-secret-256bit!!"
     base-url: "http://localhost:9090"
+  cors:
+    allowed-origins: "http://localhost:8080,http://127.0.0.1:8080,http://localhost:9090"
