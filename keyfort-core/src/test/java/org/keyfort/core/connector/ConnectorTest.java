@@ -113,6 +113,27 @@ class ConnectorTest {
         assertThrows(ConnectorException.class, () -> connector.verifyLoginEvent(event));
     }
 
+    @Test
+    @DisplayName("GuestSessionInfo validates mandatory fields")
+    void testGuestSessionInfoValidation() {
+        assertThrows(NullPointerException.class, () -> new GuestSessionInfo(null, "ACTIVE", Instant.now(), 300));
+        assertThrows(NullPointerException.class, () -> new GuestSessionInfo("gs-1", null, Instant.now(), 300));
+        assertThrows(NullPointerException.class, () -> new GuestSessionInfo("gs-1", "ACTIVE", null, 300));
+
+        GuestSessionInfo info = new GuestSessionInfo("gs-1", "ACTIVE", Instant.EPOCH.plusSeconds(300), 300);
+        assertEquals("gs-1", info.sessionId());
+        assertEquals("ACTIVE", info.status());
+        assertEquals(300, info.remainingSeconds());
+    }
+
+    @Test
+    @DisplayName("AssistedConnector rejects session query and ignores session termination")
+    void testAssistedConnectorSessionMethods() {
+        AssistedConnector connector = new AssistedConnector("example.com");
+        assertThrows(ConnectorException.class, () -> connector.getSession("gs-1"));
+        assertDoesNotThrow(() -> connector.terminateSession("gs-1"));
+    }
+
     private static final class MutableClock extends Clock {
         private Instant instant;
 

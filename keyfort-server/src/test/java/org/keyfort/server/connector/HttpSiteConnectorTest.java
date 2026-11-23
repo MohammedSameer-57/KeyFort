@@ -100,4 +100,45 @@ class HttpSiteConnectorTest {
         assertEquals("cred-tkt-abc", event.credentialRef());
         assertEquals("read-only", event.metadata().get("scope"));
     }
+
+    @Test
+    @DisplayName("HttpSiteConnector queries and terminates guest sessions over HTTP")
+    void testQueryAndTerminateGuestSessionOverHttp() throws IOException {
+        HttpServer server = HttpServer.create(new InetSocketAddress(0), 0);
+        int port = server.getAddress().getPort();
+
+        server.createContext("/connector/sessions/gs-123", exchange -> {
+            if ("GET".equalsIgnoreCase(exchange.getRequestMethod())) {
+                String resp = "{\"sessionId\":\"gs-123\",\"status\":\"ACTIVE\",\"expiresAt\":\"2026-11-22T14:15:00Z\",\"remainingSeconds\":900}";
+                byte[] bytes = resp.getBytes(StandardCharsets.UTF_8);
+                exchange.getResponseHeaders().set("Content-Type", "application/json");
+                exchange.sendResponseHeaders(200, bytes.length);
+                exchange.getResponseBody().write(bytes);
+                exchange.close();
+            } else if ("DELETE".equalsIgnoreCase(exchange.getRequestMethod())) {
+                exchange.sendResponseHeaders(204, -1);
+                exchange.close();
+            }
+        });
+        server.start();
+
+        try {
+            HttpSiteConnector connector = new HttpSiteConnector(
+                    "http://localhost:" + port,
+                    SECRET,
+                    HttpClient.newHttpClient(),
+                    objectMapper,
+                    Clock.fixed(T0, ZoneOffset.UTC)
+            );
+
+            org.keyfort.core.connector.GuestSessionInfo session = connector.getSession("gs-123");
+            assertEquals("gs-123", session.sessionId());
+            assertEquals("ACTIVE", session.status());
+            assertEquals(900, session.remainingSeconds());
+
+            assertDoesNotThrow(() -> connector.terminateSession("gs-123"));
+        } finally {
+            server.stop(0);
+        }
+    }
 }

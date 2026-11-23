@@ -31,4 +31,14 @@ public class AssistedConnector implements SiteConnector {
     public LoginEvent verifyLoginEvent(SignedEvent signedEvent) {
         throw new ConnectorException("AssistedConnector does not accept remote webhook events");
     }
+
+    @Override
+    public GuestSessionInfo getSession(String sessionId) {
+        throw new ConnectorException("AssistedConnector does not manage live sessions");
+    }
+
+    @Override
+    public void terminateSession(String sessionId) {
+        // No-op for unintegrated sites
+    }
 }

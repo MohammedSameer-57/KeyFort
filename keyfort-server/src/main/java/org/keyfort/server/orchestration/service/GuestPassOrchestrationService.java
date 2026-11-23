@@ -240,11 +240,66 @@ public class GuestPassOrchestrationService {
 
             String passPrefix = Crypto.toHex(Crypto.sha256(pass.id().getBytes(StandardCharsets.UTF_8))).substring(0, 16);
             ledgerService.append("GUEST_PASS_BURNED", "passPrefix=" + passPrefix + ", entryId=" + pass.entryId());
+
+            String sessionId = (String) payloadMap.get("sessionId");
+            if (sessionId != null) {
+                entity.setSessionId(sessionId);
+                repository.save(entity);
+            }
+
+            // Critical Invariant: BURNED does NOT end the live session.
+            // The one-time ticket credential is revoked on the target site connector, and the vault key
+            // rotates. The live guest session remains active on the target site until its hard TTL expires,
+            // idle timeout is reached, or the vault owner terminates it via the session kill switch.
             log.info("Processed login webhook for eventId={}, passId={}", eventId, pass.id());
         }
 
         processedEventRepository.save(new ProcessedEventEntity(eventId, ticketId, clock.instant()));
         return Map.of("status", "SUCCESS");
+    }
+
+    @Transactional(readOnly = true)
+    public org.keyfort.core.connector.GuestSessionInfo getSessionStatus(String ownerUserId, String passId) {
+        Objects.requireNonNull(ownerUserId, "ownerUserId must not be null");
+        Objects.requireNonNull(passId, "passId must not be null");
+
+        GuestPassEntity entity = repository.findById(passId)
+                .orElseThrow(() -> new GuestPassNotFoundException("Guest pass not found: " + passId));
+
+        if (entity.getOwnerUserId() != null && !ownerUserId.equals(entity.getOwnerUserId())) {
+            throw new GuestPassNotFoundException("Guest pass not found: " + passId);
+        }
+
+        if (entity.getSessionId() == null) {
+            throw new GuestPassNotFoundException("No active session found for pass: " + passId);
+        }
+
+        SiteConnector connector = connectorRegistry.getConnectorForEntry(entity.getEntryId());
+        return connector.getSession(entity.getSessionId());
+    }
+
+    @Transactional
+    public void endSession(String ownerUserId, String passId) {
+        Objects.requireNonNull(ownerUserId, "ownerUserId must not be null");
+        Objects.requireNonNull(passId, "passId must not be null");
+
+        GuestPassEntity entity = repository.findById(passId)
+                .orElseThrow(() -> new GuestPassNotFoundException("Guest pass not found: " + passId));
+
+        if (entity.getOwnerUserId() != null && !ownerUserId.equals(entity.getOwnerUserId())) {
+            throw new GuestPassNotFoundException("Guest pass not found: " + passId);
+        }
+
+        if (entity.getSessionId() == null) {
+            throw new GuestPassNotFoundException("No active session found for pass: " + passId);
+        }
+
+        SiteConnector connector = connectorRegistry.getConnectorForEntry(entity.getEntryId());
+        connector.terminateSession(entity.getSessionId());
+
+        String passPrefix = Crypto.toHex(Crypto.sha256(entity.getId().getBytes(StandardCharsets.UTF_8))).substring(0, 16);
+        ledgerService.append("GUEST_SESSION_TERMINATED", "passPrefix=" + passPrefix + ", entryId=" + entity.getEntryId());
+        log.info("Terminated guest session for passId={}", passId);
     }
 
     @Transactional

@@ -18,16 +18,22 @@ public class TicketService {
 
     private final TicketRepository ticketRepository;
     private final WebhookDispatchService webhookService;
+    private final GuestSessionService guestSessionService;
     private final Clock clock;
 
     @Autowired
-    public TicketService(TicketRepository ticketRepository, WebhookDispatchService webhookService) {
-        this(ticketRepository, webhookService, Clock.systemUTC());
+    public TicketService(TicketRepository ticketRepository, WebhookDispatchService webhookService, GuestSessionService guestSessionService) {
+        this(ticketRepository, webhookService, guestSessionService, Clock.systemUTC());
     }
 
-    public TicketService(TicketRepository ticketRepository, WebhookDispatchService webhookService, Clock clock) {
+    public TicketService(TicketRepository ticketRepository, WebhookDispatchService webhookService) {
+        this(ticketRepository, webhookService, null, Clock.systemUTC());
+    }
+
+    public TicketService(TicketRepository ticketRepository, WebhookDispatchService webhookService, GuestSessionService guestSessionService, Clock clock) {
         this.ticketRepository = ticketRepository;
         this.webhookService = webhookService;
+        this.guestSessionService = guestSessionService;
         this.clock = clock;
     }
 
@@ -70,7 +76,7 @@ public class TicketService {
     }
 
     @Transactional
-    public TicketEntity consumeTicket(String token) {
+    public org.keyfort.demosite.entity.GuestSessionEntity consumeTicketAndCreateSession(String token, String userAgent, String deviceCookie) {
         Objects.requireNonNull(token, "token must not be null");
         TicketEntity ticket = ticketRepository.findByTicketToken(token)
                 .orElseThrow(() -> new TicketValidationException("Invalid or expired login ticket"));
@@ -83,7 +89,25 @@ public class TicketService {
         ticket.setUsed(true);
         TicketEntity saved = ticketRepository.save(ticket);
 
-        webhookService.dispatchLoginObserved(saved.getId(), saved.getEntryId(), saved.getScope());
-        return saved;
+        org.keyfort.demosite.entity.GuestSessionEntity session = null;
+        if (guestSessionService != null) {
+            session = guestSessionService.createSession(
+                    saved.getId(),
+                    saved.getEntryId(),
+                    saved.getScope(),
+                    userAgent,
+                    deviceCookie
+            );
+        }
+
+        String sessionId = session != null ? session.getId() : null;
+        webhookService.dispatchLoginObserved(saved.getId(), saved.getEntryId(), saved.getScope(), sessionId);
+        return session;
+    }
+
+    @Transactional
+    public TicketEntity consumeTicket(String token) {
+        consumeTicketAndCreateSession(token, null, null);
+        return ticketRepository.findByTicketToken(token).orElseThrow();
     }
 }

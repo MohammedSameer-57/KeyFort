@@ -9,8 +9,13 @@ public record LoginEvent(
         String entryId,
         Instant timestamp,
         String credentialRef,
+        String sessionId,
         Map<String, String> metadata
 ) {
+    public LoginEvent(String ticketId, String entryId, Instant timestamp, String credentialRef, Map<String, String> metadata) {
+        this(ticketId, entryId, timestamp, credentialRef, null, metadata);
+    }
+
     public LoginEvent {
         Objects.requireNonNull(ticketId, "ticketId must not be null");
         Objects.requireNonNull(entryId, "entryId must not be null");

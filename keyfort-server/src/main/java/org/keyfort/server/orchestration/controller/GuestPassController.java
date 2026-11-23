@@ -18,6 +18,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -99,6 +100,26 @@ public class GuestPassController {
         String userId = authentication.getName();
         orchestrationService.revoke(userId, id);
         return ResponseEntity.ok(Map.of("status", "REVOKED"));
+    }
+
+    @GetMapping("/api/guest-passes/{id}/session")
+    public ResponseEntity<org.keyfort.core.connector.GuestSessionInfo> getGuestSession(
+            @PathVariable("id") String id,
+            Authentication authentication
+    ) {
+        String userId = authentication.getName();
+        org.keyfort.core.connector.GuestSessionInfo session = orchestrationService.getSessionStatus(userId, id);
+        return ResponseEntity.ok(session);
+    }
+
+    @PostMapping("/api/guest-passes/{id}/end-session")
+    public ResponseEntity<Map<String, String>> endGuestSession(
+            @PathVariable("id") String id,
+            Authentication authentication
+    ) {
+        String userId = authentication.getName();
+        orchestrationService.endSession(userId, id);
+        return ResponseEntity.ok(Map.of("status", "TERMINATED"));
     }
 
     @ExceptionHandler(RateLimitExceededException.class)

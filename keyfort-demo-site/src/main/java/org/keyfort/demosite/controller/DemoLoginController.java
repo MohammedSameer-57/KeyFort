@@ -1,7 +1,10 @@
 package org.keyfort.demosite.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import org.keyfort.core.Crypto;
+import org.keyfort.demosite.entity.GuestSessionEntity;
 import org.keyfort.demosite.entity.TicketEntity;
 import org.keyfort.demosite.service.TicketService;
 import org.keyfort.demosite.service.TicketValidationException;
@@ -10,14 +13,19 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import java.time.Duration;
 import java.time.Instant;
+import java.util.Base64;
 import java.util.Map;
 
 @Controller
@@ -92,6 +100,10 @@ public class DemoLoginController {
     @PostMapping(value = "/keyfort/login")
     public ResponseEntity<Void> keyfortLoginConsume(
             @RequestParam(name = "ticket", required = false) String ticket,
+            @CookieValue(name = "KEYFORT_DEVICE_ID", required = false) String deviceCookie,
+            @RequestHeader(name = "User-Agent", required = false) String userAgent,
+            HttpServletRequest request,
+            HttpServletResponse response,
             HttpSession session
     ) {
         if (ticket == null || ticket.isBlank()) {
@@ -102,18 +114,45 @@ public class DemoLoginController {
         }
 
         try {
-            // Atomic single-use consumption
-            TicketEntity consumed = ticketService.consumeTicket(ticket);
-            session.setAttribute("user", "guest-" + consumed.getEntryId());
-            session.setAttribute("scope", consumed.getScope());
-            session.setAttribute("role", "GUEST_READONLY");
-            session.setAttribute("guestExpiresAt", Instant.now().plusSeconds(900).toString());
+            String deviceId = deviceCookie;
+            boolean setDeviceCookie = false;
+            if (deviceId == null || deviceId.isBlank()) {
+                deviceId = "dev_" + Base64.getUrlEncoder().withoutPadding().encodeToString(Crypto.random(16));
+                setDeviceCookie = true;
+            }
 
-            // Redirection explicitly contains no ticket query parameter
-            return ResponseEntity.status(HttpStatus.FOUND)
+            GuestSessionEntity guestSession = ticketService.consumeTicketAndCreateSession(ticket, userAgent, deviceId);
+
+            session.setAttribute("user", "guest-" + guestSession.getAccount());
+            session.setAttribute("scope", guestSession.getScope());
+            session.setAttribute("role", "GUEST_READONLY");
+            session.setAttribute("guestExpiresAt", guestSession.getExpiresAt().toString());
+
+            ResponseCookie sessionCookie = ResponseCookie.from("KEYFORT_GUEST_SESSION", guestSession.getId())
+                    .httpOnly(true)
+                    .sameSite("Strict")
+                    .path("/")
+                    .secure(request.isSecure())
+                    .maxAge(Duration.ofMinutes(10).toSeconds())
+                    .build();
+
+            var respBuilder = ResponseEntity.status(HttpStatus.FOUND)
                     .header(HttpHeaders.LOCATION, "/dashboard")
                     .header(REFERRER_POLICY_HEADER, NO_REFERRER)
-                    .build();
+                    .header(HttpHeaders.SET_COOKIE, sessionCookie.toString());
+
+            if (setDeviceCookie) {
+                ResponseCookie devCookie = ResponseCookie.from("KEYFORT_DEVICE_ID", deviceId)
+                        .httpOnly(true)
+                        .sameSite("Strict")
+                        .path("/")
+                        .secure(request.isSecure())
+                        .maxAge(Duration.ofDays(365).toSeconds())
+                        .build();
+                respBuilder.header(HttpHeaders.SET_COOKIE, devCookie.toString());
+            }
+
+            return respBuilder.build();
         } catch (TicketValidationException e) {
             return ResponseEntity.status(HttpStatus.FOUND)
                     .header(HttpHeaders.LOCATION, "/login?error=invalid_ticket")
@@ -246,5 +285,23 @@ public class DemoLoginController {
                         "role", session.getAttribute("role"),
                         "scope", session.getAttribute("scope")
                 ));
+    }
+
+    @GetMapping(value = "/account/settings", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    public ResponseEntity<Map<String, String>> getAccountSettings() {
+        return ResponseEntity.ok(Map.of("status", "ok", "role", "READ_ONLY"));
+    }
+
+    @PostMapping(value = "/account/settings", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    public ResponseEntity<Map<String, String>> updateAccountSettings() {
+        return ResponseEntity.ok(Map.of("status", "updated"));
+    }
+
+    @PostMapping(value = "/account/transfer", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    public ResponseEntity<Map<String, String>> transferAccountFunds() {
+        return ResponseEntity.ok(Map.of("status", "transferred"));
     }
 }

@@ -56,6 +56,12 @@ class DemoSiteIntegrationTest {
     private TicketRepository ticketRepository;
 
     @Autowired
+    private org.keyfort.demosite.repository.GuestSessionRepository sessionRepository;
+
+    @Autowired
+    private org.keyfort.demosite.service.GuestSessionService sessionService;
+
+    @Autowired
     private OutboxEventRepository outboxRepository;
 
     @Autowired
@@ -352,6 +358,223 @@ class DemoSiteIntegrationTest {
         String redirected = res.getResponse().getRedirectedUrl();
         assertNotNull(redirected);
         assertFalse(redirected.contains("secret_token_12345"), "Redirect URL must not echo raw ticket secret");
+    }
+
+    @Test
+    @DisplayName("Guest session cannot outlive hard TTL")
+    void testSessionCannotOutliveHardTtl() throws Exception {
+        TicketEntity ticket = ticketService.createTicket("entry-hard-ttl", "read-only", Duration.ofMinutes(15));
+        MvcResult loginRes = mockMvc.perform(post("/keyfort/login")
+                        .param("ticket", ticket.getTicketToken()))
+                .andExpect(status().is3xxRedirection())
+                .andReturn();
+
+        jakarta.servlet.http.Cookie sessionCookie = loginRes.getResponse().getCookie("KEYFORT_GUEST_SESSION");
+        assertNotNull(sessionCookie);
+        jakarta.servlet.http.Cookie deviceCookie = loginRes.getResponse().getCookie("KEYFORT_DEVICE_ID");
+
+        // Fast forward expiresAt in the database to the past
+        org.keyfort.demosite.entity.GuestSessionEntity entity = sessionRepository.findById(sessionCookie.getValue()).orElseThrow();
+        entity.setExpiresAt(Instant.now().minusSeconds(10));
+        sessionRepository.save(entity);
+
+        var reqBuilder = get("/dashboard").cookie(sessionCookie);
+        if (deviceCookie != null) reqBuilder.cookie(deviceCookie);
+
+        mockMvc.perform(reqBuilder)
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/login?error=session_expired"));
+
+        org.keyfort.demosite.entity.GuestSessionEntity after = sessionRepository.findById(sessionCookie.getValue()).orElseThrow();
+        assertEquals(org.keyfort.demosite.entity.SessionStatus.ENDED, after.getStatus());
+    }
+
+    @Test
+    @DisplayName("Guest session slides on access and expires when idle timeout is exceeded")
+    void testSessionIdleTimeoutAndSlide() throws Exception {
+        TicketEntity ticket = ticketService.createTicket("entry-idle-test", "read-only", Duration.ofMinutes(15));
+        MvcResult loginRes = mockMvc.perform(post("/keyfort/login")
+                        .param("ticket", ticket.getTicketToken()))
+                .andExpect(status().is3xxRedirection())
+                .andReturn();
+
+        jakarta.servlet.http.Cookie sessionCookie = loginRes.getResponse().getCookie("KEYFORT_GUEST_SESSION");
+        jakarta.servlet.http.Cookie deviceCookie = loginRes.getResponse().getCookie("KEYFORT_DEVICE_ID");
+        assertNotNull(sessionCookie);
+
+        // Slide check: access /dashboard and verify lastAccessAt is updated
+        var req1 = get("/dashboard").cookie(sessionCookie);
+        if (deviceCookie != null) req1.cookie(deviceCookie);
+        mockMvc.perform(req1).andExpect(status().isOk());
+
+        // Now fast forward lastAccessAt to 6 minutes in the past (> 5 min idle timeout)
+        org.keyfort.demosite.entity.GuestSessionEntity entity = sessionRepository.findById(sessionCookie.getValue()).orElseThrow();
+        entity.setLastAccessAt(Instant.now().minus(Duration.ofMinutes(6)));
+        sessionRepository.save(entity);
+
+        var req2 = get("/dashboard").cookie(sessionCookie);
+        if (deviceCookie != null) req2.cookie(deviceCookie);
+        mockMvc.perform(req2)
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/login?error=session_expired"));
+
+        org.keyfort.demosite.entity.GuestSessionEntity after = sessionRepository.findById(sessionCookie.getValue()).orElseThrow();
+        assertEquals(org.keyfort.demosite.entity.SessionStatus.ENDED, after.getStatus());
+    }
+
+    @Test
+    @DisplayName("Connector kill-switch terminates session immediately and ended session cannot be revived")
+    void testConnectorKillSwitchEndsSessionImmediately() throws Exception {
+        TicketEntity ticket = ticketService.createTicket("entry-kill-switch", "read-only", Duration.ofMinutes(15));
+        MvcResult loginRes = mockMvc.perform(post("/keyfort/login")
+                        .param("ticket", ticket.getTicketToken()))
+                .andExpect(status().is3xxRedirection())
+                .andReturn();
+
+        jakarta.servlet.http.Cookie sessionCookie = loginRes.getResponse().getCookie("KEYFORT_GUEST_SESSION");
+        jakarta.servlet.http.Cookie deviceCookie = loginRes.getResponse().getCookie("KEYFORT_DEVICE_ID");
+        assertNotNull(sessionCookie);
+        String sessionId = sessionCookie.getValue();
+
+        // Valid session before kill-switch
+        var activeReq = get("/api/session").cookie(sessionCookie);
+        if (deviceCookie != null) activeReq.cookie(deviceCookie);
+        mockMvc.perform(activeReq).andExpect(status().isOk());
+
+        // Kill-switch: DELETE /connector/sessions/{id} with HMAC
+        long ts = Instant.now().getEpochSecond();
+        String nonce = "nonce-kill-switch-1";
+        String path = "/connector/sessions/" + sessionId;
+        String sig = HmacSigner.sign(SECRET, "DELETE", path, ts, nonce, "");
+
+        mockMvc.perform(delete(path)
+                        .header("X-KeyFort-Timestamp", String.valueOf(ts))
+                        .header("X-KeyFort-Nonce", nonce)
+                        .header("X-KeyFort-Signature", sig))
+                .andExpect(status().isNoContent());
+
+        // Immediate check: next request gets 401 Unauthorized
+        var killedReq = get("/api/session").cookie(sessionCookie);
+        if (deviceCookie != null) killedReq.cookie(deviceCookie);
+        mockMvc.perform(killedReq).andExpect(status().isUnauthorized());
+
+        // Ended session cannot be revived
+        var revivedReq = get("/dashboard").cookie(sessionCookie);
+        if (deviceCookie != null) revivedReq.cookie(deviceCookie);
+        mockMvc.perform(revivedReq)
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/login?error=session_expired"));
+
+        org.keyfort.demosite.entity.GuestSessionEntity after = sessionRepository.findById(sessionId).orElseThrow();
+        assertEquals(org.keyfort.demosite.entity.SessionStatus.ENDED, after.getStatus());
+    }
+
+    @Test
+    @DisplayName("Guest session with read-only scope cannot reach write endpoints")
+    void testGuestCannotReachWriteEndpoints() throws Exception {
+        TicketEntity ticket = ticketService.createTicket("entry-write-test", "read-only", Duration.ofMinutes(15));
+        MvcResult loginRes = mockMvc.perform(post("/keyfort/login")
+                        .param("ticket", ticket.getTicketToken()))
+                .andExpect(status().is3xxRedirection())
+                .andReturn();
+
+        jakarta.servlet.http.Cookie sessionCookie = loginRes.getResponse().getCookie("KEYFORT_GUEST_SESSION");
+        jakarta.servlet.http.Cookie deviceCookie = loginRes.getResponse().getCookie("KEYFORT_DEVICE_ID");
+        assertNotNull(sessionCookie);
+
+        // Read endpoint succeeds
+        var readReq = get("/account/settings").cookie(sessionCookie);
+        if (deviceCookie != null) readReq.cookie(deviceCookie);
+        mockMvc.perform(readReq).andExpect(status().isOk());
+
+        // Mutating POST endpoints return 403 Forbidden
+        var writeReq1 = post("/account/settings").cookie(sessionCookie);
+        if (deviceCookie != null) writeReq1.cookie(deviceCookie);
+        mockMvc.perform(writeReq1).andExpect(status().isForbidden());
+
+        var writeReq2 = post("/account/transfer").cookie(sessionCookie);
+        if (deviceCookie != null) writeReq2.cookie(deviceCookie);
+        mockMvc.perform(writeReq2).andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("Login webhook dispatch carries sessionId in JSON payload")
+    void testLoginWebhookDispatchesSessionId() throws Exception {
+        outboxRepository.deleteAll();
+        TicketEntity ticket = ticketService.createTicket("entry-webhook-session", "read-only", Duration.ofMinutes(15));
+
+        MvcResult loginRes = mockMvc.perform(post("/keyfort/login")
+                        .param("ticket", ticket.getTicketToken()))
+                .andExpect(status().is3xxRedirection())
+                .andReturn();
+
+        jakarta.servlet.http.Cookie sessionCookie = loginRes.getResponse().getCookie("KEYFORT_GUEST_SESSION");
+        assertNotNull(sessionCookie);
+        String sessionId = sessionCookie.getValue();
+
+        List<OutboxEventEntity> events = outboxRepository.findByDeliveredFalse();
+        assertFalse(events.isEmpty(), "Outbox should hold the dispatched login event");
+        String payload = events.get(0).getPayload();
+        assertTrue(payload.contains("\"sessionId\":\"" + sessionId + "\""), "Payload must include sessionId: " + payload);
+    }
+
+    @Test
+    @DisplayName("Device binding mismatch rejects request")
+    void testDeviceBindingMismatchRejected() throws Exception {
+        TicketEntity ticket = ticketService.createTicket("entry-device-bind", "read-only", Duration.ofMinutes(15));
+        MvcResult loginRes = mockMvc.perform(post("/keyfort/login")
+                        .param("ticket", ticket.getTicketToken())
+                        .header("User-Agent", "Mozilla/5.0 Device-A")
+                        .cookie(new jakarta.servlet.http.Cookie("KEYFORT_DEVICE_ID", "device-cookie-123")))
+                .andExpect(status().is3xxRedirection())
+                .andReturn();
+
+        jakarta.servlet.http.Cookie sessionCookie = loginRes.getResponse().getCookie("KEYFORT_GUEST_SESSION");
+        assertNotNull(sessionCookie);
+
+        // Access with matching device cookie and User-Agent succeeds
+        mockMvc.perform(get("/dashboard")
+                        .cookie(sessionCookie)
+                        .cookie(new jakarta.servlet.http.Cookie("KEYFORT_DEVICE_ID", "device-cookie-123"))
+                        .header("User-Agent", "Mozilla/5.0 Device-A"))
+                .andExpect(status().isOk());
+
+        // Access with altered User-Agent is rejected
+        mockMvc.perform(get("/dashboard")
+                        .cookie(sessionCookie)
+                        .cookie(new jakarta.servlet.http.Cookie("KEYFORT_DEVICE_ID", "device-cookie-123"))
+                        .header("User-Agent", "Different-Browser/1.0"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/login?error=session_expired"));
+    }
+
+    @Test
+    @DisplayName("No session ID or cookie value is leaked in log statements")
+    void testNoSessionIdOrCookieLeakedInLogs() throws Exception {
+        ch.qos.logback.classic.Logger rootLogger = (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger("org.keyfort.demosite");
+        ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent> appender = new ch.qos.logback.core.read.ListAppender<>();
+        appender.start();
+        rootLogger.addAppender(appender);
+
+        TicketEntity ticket = ticketService.createTicket("entry-log-leak", "read-only", Duration.ofMinutes(15));
+        MvcResult loginRes = mockMvc.perform(post("/keyfort/login")
+                        .param("ticket", ticket.getTicketToken()))
+                .andExpect(status().is3xxRedirection())
+                .andReturn();
+
+        jakarta.servlet.http.Cookie sessionCookie = loginRes.getResponse().getCookie("KEYFORT_GUEST_SESSION");
+        assertNotNull(sessionCookie);
+        String sessionId = sessionCookie.getValue();
+
+        try {
+            for (ch.qos.logback.classic.spi.ILoggingEvent event : appender.list) {
+                String msg = event.getFormattedMessage();
+                assertFalse(msg.contains(sessionId), "Log output must not contain raw session ID: " + msg);
+                assertFalse(msg.contains(ticket.getTicketToken()), "Log output must not contain raw ticket token: " + msg);
+            }
+        } finally {
+            rootLogger.detachAppender(appender);
+        }
     }
 
     private static final class MutableTestClock extends Clock {

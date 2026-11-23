@@ -96,6 +96,24 @@ class GuestPassOrchestrationIntegrationTest {
                     exchange.close();
                 }
             });
+            mockTargetSiteServer.createContext("/connector/sessions", exchange -> {
+                String path = exchange.getRequestURI().getPath();
+                if ("GET".equalsIgnoreCase(exchange.getRequestMethod())) {
+                    String sid = path.substring(path.lastIndexOf('/') + 1);
+                    String resp = "{\"sessionId\":\"" + sid + "\",\"status\":\"ACTIVE\",\"expiresAt\":\"2026-11-22T14:15:00Z\",\"remainingSeconds\":600}";
+                    byte[] bytes = resp.getBytes(StandardCharsets.UTF_8);
+                    exchange.getResponseHeaders().set("Content-Type", "application/json");
+                    exchange.sendResponseHeaders(200, bytes.length);
+                    exchange.getResponseBody().write(bytes);
+                    exchange.close();
+                } else if ("DELETE".equalsIgnoreCase(exchange.getRequestMethod())) {
+                    exchange.sendResponseHeaders(204, -1);
+                    exchange.close();
+                } else {
+                    exchange.sendResponseHeaders(405, -1);
+                    exchange.close();
+                }
+            });
             mockTargetSiteServer.start();
         } catch (java.net.BindException ignored) {
             // Server may already be running
@@ -607,6 +625,7 @@ class GuestPassOrchestrationIntegrationTest {
             GuestPassEntity redeemedEntity = guestPassRepository.findById(createResp.id()).orElseThrow();
             String ticketId = redeemedEntity.getCredentialRef();
             String cookieValue = "mock-session-cookie-val-98765";
+            String sessionId = "mock-guest-session-id-443322";
 
             // 3. Webhook event
             long ts = Instant.now().getEpochSecond();
@@ -616,6 +635,7 @@ class GuestPassOrchestrationIntegrationTest {
                     "ticketId", ticketId,
                     "entryId", "entry-site-1",
                     "scope", "read-only",
+                    "sessionId", sessionId,
                     "timestamp", Instant.now().toString()
             );
             String webhookJson = objectMapper.writeValueAsString(webhookPayload);
@@ -629,7 +649,16 @@ class GuestPassOrchestrationIntegrationTest {
                             .content(webhookJson))
                     .andExpect(status().isOk());
 
-            // 4. Assert no sensitive data appears in any captured log event
+            // 4. Session query and termination
+            mockMvc.perform(get("/api/guest-passes/" + createResp.id() + "/session")
+                            .header("Authorization", "Bearer " + userJwtToken))
+                    .andExpect(status().isOk());
+
+            mockMvc.perform(post("/api/guest-passes/" + createResp.id() + "/end-session")
+                            .header("Authorization", "Bearer " + userJwtToken))
+                    .andExpect(status().isOk());
+
+            // 5. Assert no sensitive data appears in any captured log event
             assertFalse(listAppender.list.isEmpty(), "Logs should have been recorded during lifecycle");
             for (ch.qos.logback.classic.spi.ILoggingEvent event : listAppender.list) {
                 String msg = event.getFormattedMessage();
@@ -637,9 +666,154 @@ class GuestPassOrchestrationIntegrationTest {
                 assertFalse(msg.contains(rawSecret), "Log must not contain token secret");
                 assertFalse(msg.contains(ticketId), "Log must not contain ticket ID");
                 assertFalse(msg.contains(cookieValue), "Log must not contain cookie value");
+                assertFalse(msg.contains(sessionId), "Log must not contain session ID");
             }
         } finally {
             rootLogger.detachAppender(listAppender);
         }
+    }
+
+    @Test
+    @DisplayName("Guest session lifecycle: BURNED does NOT end live session, and owner can terminate via kill-switch")
+    void testGuestSessionLifecycleAndBurnedInvariant() throws Exception {
+        // 1. Create pass
+        CreateGuestPassRequest createReq = new CreateGuestPassRequest("entry-site-1", "read-only", 900);
+        MvcResult createRes = mockMvc.perform(post("/api/guest-passes")
+                        .header("Authorization", "Bearer " + userJwtToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createReq)))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        CreateGuestPassResponse createResp = objectMapper.readValue(createRes.getResponse().getContentAsString(), CreateGuestPassResponse.class);
+        String passId = createResp.id();
+
+        // 2. Redeem pass
+        RedeemGuestPassRequest redeemReq = new RedeemGuestPassRequest(createResp.token());
+        mockMvc.perform(post("/api/guest-passes/redeem")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(redeemReq)))
+                .andExpect(status().isOk());
+
+        GuestPassEntity redeemedEntity = guestPassRepository.findById(passId).orElseThrow();
+        String ticketId = redeemedEntity.getCredentialRef();
+        String sessionId = "gs-test-live-1";
+
+        // 3. Webhook dispatch from target site with sessionId
+        long ts = Instant.now().getEpochSecond();
+        String nonce = "webhook-nonce-" + Crypto.random(6);
+        Map<String, Object> webhookPayload = Map.of(
+                "eventId", "evt-session-" + Crypto.random(4),
+                "ticketId", ticketId,
+                "entryId", "entry-site-1",
+                "scope", "read-only",
+                "sessionId", sessionId,
+                "timestamp", Instant.now().toString()
+        );
+        String webhookJson = objectMapper.writeValueAsString(webhookPayload);
+        String signature = HmacSigner.sign(CONNECTOR_SECRET, "POST", "/api/connector/events", ts, nonce, webhookJson);
+
+        mockMvc.perform(post("/api/connector/events")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("X-KeyFort-Timestamp", String.valueOf(ts))
+                        .header("X-KeyFort-Nonce", nonce)
+                        .header("X-KeyFort-Signature", signature)
+                        .content(webhookJson))
+                .andExpect(status().isOk());
+
+        // Invariant check: Pass state has reached BURNED
+        GuestPassEntity burnedEntity = guestPassRepository.findById(passId).orElseThrow();
+        assertEquals(GuestPassState.BURNED, burnedEntity.getState());
+
+        // CRITICAL INVARIANT: BURNED state does NOT end the live session
+        MvcResult sessionRes = mockMvc.perform(get("/api/guest-passes/" + passId + "/session")
+                        .header("Authorization", "Bearer " + userJwtToken))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        Map<?, ?> sessionMap = objectMapper.readValue(sessionRes.getResponse().getContentAsString(), Map.class);
+        assertEquals(sessionId, sessionMap.get("sessionId"));
+        assertEquals("ACTIVE", sessionMap.get("status"));
+        assertTrue(((Number) sessionMap.get("remainingSeconds")).longValue() > 0);
+
+        // Explicit owner kill-switch terminates live session
+        mockMvc.perform(post("/api/guest-passes/" + passId + "/end-session")
+                        .header("Authorization", "Bearer " + userJwtToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("TERMINATED"));
+
+        // Verify ledger recorded GUEST_SESSION_TERMINATED
+        boolean ledgerRecorded = ledgerRepository.findAll().stream()
+                .anyMatch(b -> "GUEST_SESSION_TERMINATED".equals(b.getType()));
+        assertTrue(ledgerRecorded, "Ledger must record GUEST_SESSION_TERMINATED");
+    }
+
+    @Test
+    @DisplayName("Guest session queries and termination enforce pass ownership returning 404 for non-owners")
+    void testGuestSessionAccessRequiresPassOwnership() throws Exception {
+        // Create pass as alice-owner
+        CreateGuestPassRequest createReq = new CreateGuestPassRequest("entry-site-1", "read-only", 900);
+        MvcResult createRes = mockMvc.perform(post("/api/guest-passes")
+                        .header("Authorization", "Bearer " + userJwtToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createReq)))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        CreateGuestPassResponse createResp = objectMapper.readValue(createRes.getResponse().getContentAsString(), CreateGuestPassResponse.class);
+        String passId = createResp.id();
+
+        // Redeem and simulate login webhook with sessionId
+        mockMvc.perform(post("/api/guest-passes/redeem")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new RedeemGuestPassRequest(createResp.token()))))
+                .andExpect(status().isOk());
+
+        GuestPassEntity entity = guestPassRepository.findById(passId).orElseThrow();
+        entity.setSessionId("gs-owner-check-1");
+        guestPassRepository.save(entity);
+
+        // Authenticate as a different user (bob-attacker)
+        DeviceVerificationRequest bobReq = new DeviceVerificationRequest("bob-attacker", "phone-bob", "123456");
+        MvcResult bobAuthRes = mockMvc.perform(post("/auth/device/verify")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(bobReq)))
+                .andExpect(status().isOk())
+                .andReturn();
+        AuthResponse bobAuth = objectMapper.readValue(bobAuthRes.getResponse().getContentAsString(), AuthResponse.class);
+        String bobJwt = bobAuth.token();
+
+        // Bob attempting to query or terminate Alice's session returns 404 Not Found
+        mockMvc.perform(get("/api/guest-passes/" + passId + "/session")
+                        .header("Authorization", "Bearer " + bobJwt))
+                .andExpect(status().isNotFound());
+
+        mockMvc.perform(post("/api/guest-passes/" + passId + "/end-session")
+                        .header("Authorization", "Bearer " + bobJwt))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("Session query and termination before login return 404 Not Found")
+    void testGuestSessionQueryBeforeLoginReturnsNotFound() throws Exception {
+        CreateGuestPassRequest createReq = new CreateGuestPassRequest("entry-site-1", "read-only", 900);
+        MvcResult createRes = mockMvc.perform(post("/api/guest-passes")
+                        .header("Authorization", "Bearer " + userJwtToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createReq)))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        CreateGuestPassResponse createResp = objectMapper.readValue(createRes.getResponse().getContentAsString(), CreateGuestPassResponse.class);
+        String passId = createResp.id();
+
+        // Pass created, but not redeemed or logged in yet: query and termination return 404
+        mockMvc.perform(get("/api/guest-passes/" + passId + "/session")
+                        .header("Authorization", "Bearer " + userJwtToken))
+                .andExpect(status().isNotFound());
+
+        mockMvc.perform(post("/api/guest-passes/" + passId + "/end-session")
+                        .header("Authorization", "Bearer " + userJwtToken))
+                .andExpect(status().isNotFound());
     }
 }

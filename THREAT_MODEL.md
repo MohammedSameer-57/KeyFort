@@ -48,6 +48,8 @@ In the initial baseline implementation:
 - **Strict Single-Use State Machine**: Ephemeral tokens advance through `CREATED -> ISSUED -> REDEEMED -> CONSUMED -> BURNED`. Concurrent redemption requests are resolved atomically such that exactly one caller succeeds.
 - **Post-Login Invalidation and Rotation**: Upon receipt of a verified login webhook from a cooperating site, the guest pass credential is revoked on the target site, marked burned, and vault key rotation is requested.
 - **Zero-Knowledge Key Rotation Delegation**: The server never holds the user's master key, KEK, or decrypted vault DEK. Consequently, upon burning a guest pass, the server cannot re-encrypt vault entries itself. The server flags `rotationPending = true` on the vault record. Key rotation is executed client-side by the owner's authenticated client at next unlock.
+- **Guest Session Control & Isolation**: Target sites integrated via the connector SPI enforce a dual session timeout (hard TTL default 10 minutes, idle timeout default 5 minutes) and validate every protected request against the database repository (`GuestSessionRepository`). The pass reaching `BURNED` initiates key rotation but does NOT terminate the friend's active browser session, ensuring normal guest usage without premature disruption. An authenticated owner kill-switch (`POST /api/guest-passes/{id}/end-session`) enables immediate remote session termination via HMAC-authenticated connector calls.
+- **Best-Effort Device Binding**: Target site guest sessions are optionally bound to the SHA-256 hash of `User-Agent` + random device cookie (`KEYFORT_DEVICE_ID`). This provides defense-in-depth against simple session cookie exfiltration across devices or browsers. However, as documented in non-goals, an attacker with full local system access or identical User-Agent replay can mimic this binding.
 - **Tamper Evidence**: Cryptographic operations verify Authenticated Additional Data (AAD) bound to entry IDs and key versions. Tampered ciphertext or ledger records fail verification deterministically.
 
 ## 6. Explicit Non-Goals and Limitations
@@ -55,7 +57,7 @@ In the initial baseline implementation:
 KeyFort explicitly does not protect against the following threat scenarios:
 
 1. **Live Session Interception on Target Sites**:
-   - Once a guest redeems a credential and establishes an active HTTP session (e.g., session cookies, OAuth bearer tokens) on a third-party website, KeyFort cannot terminate that established remote session unless the target site's connector API explicitly supports remote session termination. KeyFort ensures the login credential itself cannot be reused for a second login.
+   - Once a guest redeems a credential and establishes an active HTTP session on a cooperating site, KeyFort provides session tracking and a remote kill-switch via the connector SPI (`DELETE /connector/sessions/{id}`). However, on sites without connector integration (Assisted mode), remote session termination is impossible. Device binding (User-Agent + device cookie) is strictly best-effort defense-in-depth and cannot withstand full endpoint compromise or device replication.
 2. **Camera Recording During Active Display**:
    - If an owner or guest displays a credential or token on screen in direct view of a recording camera, the optical capture of that displayed secret cannot be prevented by software. KeyFort limits the window of exposure by enforcing single-use destruction and short timeouts, making the recorded value obsolete after initial redemption.
 3. **Compromised Client Endpoints**:
