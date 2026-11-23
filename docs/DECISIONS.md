@@ -185,3 +185,22 @@ Option 3. The guest pass transition to `BURNED` signals post-login single-use co
 ### Trade-offs
 Target sites incur a database lookup on protected requests, offset by immediate kill-switch enforcement and precise session lifetime boundaries.
 
+## 0011: Server hardening, fail-fast JWT validation, explicit CORS, and client-side rotation
+
+### Status
+Accepted
+
+### Context
+Zero-knowledge architectures require strict boundary enforcement: JWT secrets must not rely on production defaults, CORS policies must reject arbitrary origins, and server databases must be segregated between ephemeral in-memory engines for testing/development and production databases. Furthermore, client-side cryptographic rotation workflows must ensure that if key rotation encounters corrupted entry ciphertext during unlock, sensitive key material (`kek`, `dek`) is immediately zeroed in memory.
+
+### Options Considered
+1. Retain default hardcoded fallback for JWT secrets and open wildcard CORS to ease deployment.
+2. Enforce fail-fast startup validation for `KEYFORT_JWT_SECRET` (requiring >= 32 bytes in production, allowing explicit dev-only default in dev/test profiles); configure an explicit origin-bound CORS policy; configure separate datasource profiles (PostgreSQL production vs H2 dev/test); wrap `Vault.unlock` rotation in try-catch with immediate key wiping on failure; and preserve plaintext `site`/`username` metadata with explicit threat documentation rather than breaking cross-module contracts.
+
+### Decision
+Option 2. The server fails fast on startup if `KEYFORT_JWT_SECRET` is missing or under 32 bytes (256 bits), reserving default secrets strictly for `dev` and `test` environments. CORS explicitly restricts allowed origins and headers. Datasource configuration defaults to PostgreSQL via environment variables (`SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`), utilizing H2 only under `dev` and `test` profiles. In `keyfort-core`, `Vault.unlock` ensures that any failure in `rotateKeys()` immediately invokes `session.close()` to zero out `kek` and `dek` arrays. When `rotationPending` is observed during vault sync, the client unlocks and rotates locally, uploading the updated version 2 vault and clearing the server flag.
+
+### Trade-offs
+Production environments require explicit environment variable provisioning (`KEYFORT_JWT_SECRET`, database credentials, and CORS origins). Plaintext metadata (`site`, `username`) is retained to preserve UI listing efficiency, documented as a known tradeoff in `THREAT_MODEL.md`.
+
+
