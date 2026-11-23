@@ -225,8 +225,22 @@ class VaultTest {
         );
 
         assertThrows(GeneralSecurityException.class, () -> restoredTamperedVault.unlock(master));
-        assertNotNull(restoredTamperedVault.lastCreatedSession());
-        assertTrue(restoredTamperedVault.lastCreatedSession().isClosed(), "Session must be closed and keys wiped when rotateKeys throws");
+        Vault.Session session = restoredTamperedVault.lastCreatedSession();
+        assertNotNull(session);
+        assertTrue(session.isClosed(), "Session must be closed and keys wiped when rotateKeys throws");
+
+        byte[] wipedKek = session.wipedKekForTesting();
+        byte[] wipedDek = session.wipedDekForTesting();
+        assertNotNull(wipedKek, "Wiped KEK array reference must be retained for inspection");
+        assertNotNull(wipedDek, "Wiped DEK array reference must be retained for inspection");
+        assertEquals(32, wipedKek.length, "KEK must be 32 bytes");
+        assertEquals(32, wipedDek.length, "DEK must be 32 bytes");
+        for (byte b : wipedKek) {
+            assertEquals((byte) 0, b, "All KEK bytes must be zeroed in memory");
+        }
+        for (byte b : wipedDek) {
+            assertEquals((byte) 0, b, "All DEK bytes must be zeroed in memory");
+        }
     }
 
     @Test

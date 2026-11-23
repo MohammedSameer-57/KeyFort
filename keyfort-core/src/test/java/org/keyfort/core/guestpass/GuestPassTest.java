@@ -220,6 +220,8 @@ class GuestPassTest {
 
         GuestPass finalPass = store.findById(issued.id()).orElseThrow();
         assertEquals(GuestPassState.REDEEMED, finalPass.state());
+        assertNotNull(finalPass.credentialRef(), "Credential reference must be set on winner redemption");
+        assertTrue(finalPass.credentialRef().startsWith("thread-ref-"), "Credential reference must match winning thread ref");
     }
 
     @Test

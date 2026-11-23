@@ -185,22 +185,33 @@ Option 3. The guest pass transition to `BURNED` signals post-login single-use co
 ### Trade-offs
 Target sites incur a database lookup on protected requests, offset by immediate kill-switch enforcement and precise session lifetime boundaries.
 
-## 0011: Server hardening, fail-fast JWT validation, explicit CORS, and client-side rotation
+## 0011: Server hardening, fail-fast JWT validation, explicit CORS, ddl-auto validation, and client-side rotation
 
 ### Status
 Accepted
 
 ### Context
-Zero-knowledge architectures require strict boundary enforcement: JWT secrets must not rely on production defaults, CORS policies must reject arbitrary origins, and server databases must be segregated between ephemeral in-memory engines for testing/development and production databases. Furthermore, client-side cryptographic rotation workflows must ensure that if key rotation encounters corrupted entry ciphertext during unlock, sensitive key material (`kek`, `dek`) is immediately zeroed in memory.
+Production deployments require strict security and boundary enforcement:
+- JWT secrets must never use production defaults; weak or missing secrets must fail fast on boot.
+- CORS policies must restrict browser origins to authorized endpoints.
+- Database schemas in production must not be automatically mutated by Hibernate at runtime (`ddl-auto: validate`), ensuring schema migrations are controlled and deterministic. In-memory H2 is retained only for `dev` and `test` profiles.
+- If client-side key rotation encounters corrupted entry ciphertext during `Vault.unlock`, sensitive key material (`kek`, `dek`) must be immediately zeroed in memory before rethrowing.
+- Entry metadata confidentiality: `site` names and `username`s must be evaluated against server requirements.
 
 ### Options Considered
-1. Retain default hardcoded fallback for JWT secrets and open wildcard CORS to ease deployment.
-2. Enforce fail-fast startup validation for `KEYFORT_JWT_SECRET` (requiring >= 32 bytes in production, allowing explicit dev-only default in dev/test profiles); configure an explicit origin-bound CORS policy; configure separate datasource profiles (PostgreSQL production vs H2 dev/test); wrap `Vault.unlock` rotation in try-catch with immediate key wiping on failure; and preserve plaintext `site`/`username` metadata with explicit threat documentation rather than breaking cross-module contracts.
+1. Retain default hardcoded fallback for JWT secrets, use `ddl-auto: update`, and encrypt all entry fields (`site`, `username`, `password`) within the sealed ciphertext blob.
+2. Enforce fail-fast startup validation for `KEYFORT_JWT_SECRET` (requiring >= 32 bytes in production, allowing explicit dev-only default in dev/test profiles); configure an explicit origin-bound CORS policy; configure separate datasource profiles with `ddl-auto: validate` for production PostgreSQL; wrap `Vault.unlock` rotation in try-catch with immediate key wiping on failure; and keep `site` readable because the server uses it to select the connector, while deferring username encryption as future work.
 
 ### Decision
-Option 2. The server fails fast on startup if `KEYFORT_JWT_SECRET` is missing or under 32 bytes (256 bits), reserving default secrets strictly for `dev` and `test` environments. CORS explicitly restricts allowed origins and headers. Datasource configuration defaults to PostgreSQL via environment variables (`SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`), utilizing H2 only under `dev` and `test` profiles. In `keyfort-core`, `Vault.unlock` ensures that any failure in `rotateKeys()` immediately invokes `session.close()` to zero out `kek` and `dek` arrays. When `rotationPending` is observed during vault sync, the client unlocks and rotates locally, uploading the updated version 2 vault and clearing the server flag.
+Option 2.
+- The server fails fast on startup if `KEYFORT_JWT_SECRET` is missing or under 32 bytes (256 bits), reserving default test secrets strictly for `dev` and `test` environments.
+- CORS explicitly restricts allowed origins (`keyfort.cors.allowed-origins`), HTTP methods, and headers.
+- Production datasource defaults to PostgreSQL via environment variables (`SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`) with `spring.jpa.hibernate.ddl-auto: validate` to prevent unmanaged runtime schema mutations. H2 with schema creation is restricted to `dev` and `test`.
+- In `keyfort-core`, `Vault.unlock` wraps key rotation in try-catch, invoking `Session.close()` to zero out `kek` and `dek` memory arrays immediately upon any rotation failure.
+- When `rotationPending` is observed during vault sync, the client unlocks and rotates locally, uploading the updated version 2 vault and clearing the server flag.
+- Metadata: `site` remains plaintext and readable because the server orchestration layer requires it to route requests and select the appropriate `SiteConnector` SPI. `username` encryption inside the entry blob is deferred as future work to preserve client listing performance without decrypting all entries. The server can see site names and usernames, but never plaintext passwords or vault keys. KeyFort does not claim full zero-knowledge confidentiality over metadata.
 
 ### Trade-offs
-Production environments require explicit environment variable provisioning (`KEYFORT_JWT_SECRET`, database credentials, and CORS origins). Plaintext metadata (`site`, `username`) is retained to preserve UI listing efficiency, documented as a known tradeoff in `THREAT_MODEL.md`.
+Production environments require explicit environment variable provisioning (`KEYFORT_JWT_SECRET`, database credentials, CORS origins) and pre-migrated database schemas. Plaintext `site` and `username` metadata are visible to the server operator, which is documented in `THREAT_MODEL.md` and `README.md`.
 
 

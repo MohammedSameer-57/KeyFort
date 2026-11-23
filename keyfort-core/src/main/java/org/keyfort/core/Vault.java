@@ -192,6 +192,8 @@ public final class Vault {
     public final class Session implements AutoCloseable {
         private byte[] kek;
         private byte[] dek;
+        private byte[] wipedKek;
+        private byte[] wipedDek;
         private boolean closed = false;
 
         private Session(byte[] kek, byte[] dek) {
@@ -307,9 +309,19 @@ public final class Vault {
             return closed;
         }
 
+        byte[] wipedKekForTesting() {
+            return wipedKek;
+        }
+
+        byte[] wipedDekForTesting() {
+            return wipedDek;
+        }
+
         @Override
         public void close() {
             closed = true;
+            this.wipedKek = kek;
+            this.wipedDek = dek;
             Crypto.wipe(kek);
             Crypto.wipe(dek);
             kek = null;
