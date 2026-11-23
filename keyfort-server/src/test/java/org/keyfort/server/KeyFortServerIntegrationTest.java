@@ -29,6 +29,7 @@ import java.security.spec.X509EncodedKeySpec;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -291,5 +292,125 @@ class KeyFortServerIntegrationTest {
         LedgerVerificationResponse resp = objectMapper.readValue(result.getResponse().getContentAsString(), LedgerVerificationResponse.class);
         assertTrue(resp.valid(), "Cryptographic ledger hash chain must be valid");
         assertTrue(resp.blockCount() > 0, "Ledger must contain audited blocks from test actions");
+    }
+
+    @Test
+    @DisplayName("Client rotation: when vault fetch reports rotationPending, owner client rotates at unlock, uploads new vault and server clears flag")
+    void testClientRotationWorkflowWhenRotationPending() throws Exception {
+        char[] master = "client-sync-rot-pass".toCharArray();
+        Vault.Created created = Vault.create("frank-sync", master);
+        Vault v = created.vault();
+
+        String entryId;
+        try (Vault.Session s = v.unlock(master)) {
+            entryId = s.add("target.com", "frank", "SecretPassword999");
+        }
+
+        // Authenticate user
+        MvcResult authResult = mockMvc.perform(post("/auth/device/verify")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new DeviceVerificationRequest("frank-sync", "device-frank", "code"))))
+                .andExpect(status().isOk())
+                .andReturn();
+        String token = objectMapper.readValue(authResult.getResponse().getContentAsString(), AuthResponse.class).token();
+
+        // 1. Initial vault sync with rotationPending = true (simulating guest pass burn)
+        org.keyfort.core.Entry e = v.entries().get(entryId);
+        List<EntryDto> entryDtos = List.of(new EntryDto(
+                e.id(), e.site(), e.username(),
+                Base64.getEncoder().encodeToString(e.sealedPassword()),
+                e.keyVersion()
+        ));
+
+        VaultSyncRequest initialRequest = new VaultSyncRequest(
+                "frank-sync", v.iterations(),
+                Base64.getEncoder().encodeToString(v.recoveryPub().getEncoded()),
+                Base64.getEncoder().encodeToString(v.kdfSalt()),
+                Base64.getEncoder().encodeToString(v.wrappedDek()),
+                Base64.getEncoder().encodeToString(v.recoveryWrappedDek()),
+                1, true, entryDtos
+        );
+
+        mockMvc.perform(put("/vault/sync")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(initialRequest)))
+                .andExpect(status().isOk());
+
+        // 2. Client fetches vault and sees rotationPending = true
+        MvcResult fetchResult = mockMvc.perform(get("/vault/sync")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        VaultSyncResponse fetchResp = objectMapper.readValue(fetchResult.getResponse().getContentAsString(), VaultSyncResponse.class);
+        assertTrue(fetchResp.rotationPending(), "Fetched vault must indicate rotationPending = true");
+        assertEquals(1, fetchResp.keyVersion());
+
+        // 3. Client restores vault and unlocks: core automatically rotates keys and re-encrypts entries
+        java.security.PublicKey recoveryPub = java.security.KeyFactory.getInstance("RSA")
+                .generatePublic(new java.security.spec.X509EncodedKeySpec(Base64.getDecoder().decode(fetchResp.recoveryPubBase64())));
+
+        Map<String, org.keyfort.core.Entry> restoredEntries = new LinkedHashMap<>();
+        for (EntryDto dto : fetchResp.entries()) {
+            restoredEntries.put(dto.id(), new org.keyfort.core.Entry(
+                    dto.id(), dto.site(), dto.username(),
+                    Base64.getDecoder().decode(dto.sealedPasswordBase64()),
+                    dto.keyVersion()
+            ));
+        }
+
+        Vault restoredVault = Vault.restore(
+                fetchResp.userId(),
+                fetchResp.iterations(),
+                recoveryPub,
+                Base64.getDecoder().decode(fetchResp.kdfSaltBase64()),
+                Base64.getDecoder().decode(fetchResp.wrappedDekBase64()),
+                Base64.getDecoder().decode(fetchResp.recoveryWrappedDekBase64()),
+                fetchResp.keyVersion(),
+                fetchResp.rotationPending(),
+                restoredEntries
+        );
+
+        try (Vault.Session s = restoredVault.unlock(master)) {
+            assertEquals(2, restoredVault.keyVersion(), "Vault keyVersion must be bumped to 2 locally");
+            assertFalse(restoredVault.rotationPending(), "Vault rotationPending must be cleared locally");
+            assertEquals("SecretPassword999", s.reveal(entryId));
+        }
+
+        // 4. Client uploads newly rotated vault to server
+        org.keyfort.core.Entry rotatedEntry = restoredVault.entries().get(entryId);
+        List<EntryDto> rotatedDtos = List.of(new EntryDto(
+                rotatedEntry.id(), rotatedEntry.site(), rotatedEntry.username(),
+                Base64.getEncoder().encodeToString(rotatedEntry.sealedPassword()),
+                rotatedEntry.keyVersion()
+        ));
+
+        VaultSyncRequest rotatedUpload = new VaultSyncRequest(
+                "frank-sync", restoredVault.iterations(),
+                Base64.getEncoder().encodeToString(restoredVault.recoveryPub().getEncoded()),
+                Base64.getEncoder().encodeToString(restoredVault.kdfSalt()),
+                Base64.getEncoder().encodeToString(restoredVault.wrappedDek()),
+                Base64.getEncoder().encodeToString(restoredVault.recoveryWrappedDek()),
+                restoredVault.keyVersion(), restoredVault.rotationPending(), rotatedDtos
+        );
+
+        MvcResult updateResult = mockMvc.perform(put("/vault/sync")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(rotatedUpload)))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        VaultSyncResponse updateResp = objectMapper.readValue(updateResult.getResponse().getContentAsString(), VaultSyncResponse.class);
+        assertEquals(2, updateResp.keyVersion());
+        assertFalse(updateResp.rotationPending(), "Server must persist cleared rotationPending flag");
+
+        // 5. Subsequent fetch confirms rotation complete
+        mockMvc.perform(get("/vault/sync")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.keyVersion").value(2))
+                .andExpect(jsonPath("$.rotationPending").value(false));
     }
 }

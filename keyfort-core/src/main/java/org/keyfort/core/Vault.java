@@ -36,6 +36,7 @@ public final class Vault {
     private byte[] recoveryWrappedDek;  // RSA-OAEP under recovery public key
     private int keyVersion = 1;
     private boolean rotationPending;
+    private transient Session lastCreatedSession;
 
     private Vault(String userId, int iterations, PublicKey recoveryPub) {
         this.userId = Objects.requireNonNull(userId, "userId must not be null");
@@ -126,10 +127,22 @@ public final class Vault {
         }
 
         Session s = new Session(kek, dek);
+        this.lastCreatedSession = s;
         if (rotationPending) {
-            s.rotateKeys();
+            try {
+                s.rotateKeys();
+            } catch (Throwable t) {
+                s.close();
+                Crypto.wipe(kek);
+                Crypto.wipe(dek);
+                throw t;
+            }
         }
         return s;
+    }
+
+    Session lastCreatedSession() {
+        return lastCreatedSession;
     }
 
     /** Recovery without exposing credentials: un-wraps DEK via recovery kit and re-wraps under new master secret. */
@@ -179,6 +192,8 @@ public final class Vault {
     public final class Session implements AutoCloseable {
         private byte[] kek;
         private byte[] dek;
+        private byte[] wipedKek;
+        private byte[] wipedDek;
         private boolean closed = false;
 
         private Session(byte[] kek, byte[] dek) {
@@ -290,9 +305,23 @@ public final class Vault {
             }
         }
 
+        public boolean isClosed() {
+            return closed;
+        }
+
+        byte[] wipedKekForTesting() {
+            return wipedKek;
+        }
+
+        byte[] wipedDekForTesting() {
+            return wipedDek;
+        }
+
         @Override
         public void close() {
             closed = true;
+            this.wipedKek = kek;
+            this.wipedDek = dek;
             Crypto.wipe(kek);
             Crypto.wipe(dek);
             kek = null;

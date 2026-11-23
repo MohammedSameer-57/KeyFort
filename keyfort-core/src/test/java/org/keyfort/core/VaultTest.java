@@ -192,4 +192,98 @@ class VaultTest {
 
         assertThrows(AuthException.class, () -> tamperedVault.unlock(secret));
     }
+
+    @Test
+    @DisplayName("If rotateKeys throws during unlock, kek and dek are wiped immediately")
+    void testUnlockRotateKeysFailureWipesKeys() throws Exception {
+        char[] master = "rotate-fail-master".toCharArray();
+        Vault.Created created = Vault.create("frank", master);
+        Vault vault = created.vault();
+
+        try (Vault.Session session = vault.unlock(master)) {
+            session.add("service.com", "frank", "P@ss1");
+        }
+
+        // Corrupt entry ciphertext directly to cause rotateKeys to throw during decryption
+        Entry validEntry = vault.entries().values().iterator().next();
+        byte[] corruptedCiphertext = validEntry.sealedPassword().clone();
+        corruptedCiphertext[0] ^= 0x01; // tamper byte
+
+        java.util.Map<String, Entry> tamperedEntries = new java.util.LinkedHashMap<>();
+        tamperedEntries.put(validEntry.id(), new Entry(validEntry.id(), validEntry.site(), validEntry.username(), corruptedCiphertext, validEntry.keyVersion()));
+
+        Vault restoredTamperedVault = Vault.restore(
+                vault.userId(),
+                vault.iterations(),
+                vault.recoveryPub(),
+                vault.kdfSalt(),
+                vault.wrappedDek(),
+                vault.recoveryWrappedDek(),
+                vault.keyVersion(),
+                true, // rotationPending = true
+                tamperedEntries
+        );
+
+        assertThrows(GeneralSecurityException.class, () -> restoredTamperedVault.unlock(master));
+        Vault.Session session = restoredTamperedVault.lastCreatedSession();
+        assertNotNull(session);
+        assertTrue(session.isClosed(), "Session must be closed and keys wiped when rotateKeys throws");
+
+        byte[] wipedKek = session.wipedKekForTesting();
+        byte[] wipedDek = session.wipedDekForTesting();
+        assertNotNull(wipedKek, "Wiped KEK array reference must be retained for inspection");
+        assertNotNull(wipedDek, "Wiped DEK array reference must be retained for inspection");
+        assertEquals(32, wipedKek.length, "KEK must be 32 bytes");
+        assertEquals(32, wipedDek.length, "DEK must be 32 bytes");
+        for (byte b : wipedKek) {
+            assertEquals((byte) 0, b, "All KEK bytes must be zeroed in memory");
+        }
+        for (byte b : wipedDek) {
+            assertEquals((byte) 0, b, "All DEK bytes must be zeroed in memory");
+        }
+    }
+
+    @Test
+    @DisplayName("Client rotation executes at unlock when rotationPending is true, re-encrypts entries, and clears flag")
+    void testClientRotationAtUnlockWhenRotationPending() throws Exception {
+        char[] master = "client-rotation-secret".toCharArray();
+        Vault.Created created = Vault.create("grace", master);
+        Vault vault = created.vault();
+
+        String id1;
+        String id2;
+        try (Vault.Session s = vault.unlock(master)) {
+            id1 = s.add("site1.com", "grace", "passOne123");
+            id2 = s.add("site2.com", "grace", "passTwo456");
+        }
+
+        assertEquals(1, vault.keyVersion());
+        assertFalse(vault.rotationPending());
+
+        // Simulate server setting rotationPending = true
+        vault.requestRotation();
+        assertTrue(vault.rotationPending());
+
+        // Client unlocks: automatic client rotation takes place
+        try (Vault.Session s = vault.unlock(master)) {
+            assertEquals(2, vault.keyVersion(), "Key version must increment to 2");
+            assertFalse(vault.rotationPending(), "rotationPending must be cleared locally after rotation");
+
+            // Verify entries are re-encrypted under keyVersion 2
+            Entry e1 = vault.entries().get(id1);
+            Entry e2 = vault.entries().get(id2);
+            assertEquals(2, e1.keyVersion());
+            assertEquals(2, e2.keyVersion());
+
+            // Credentials remain decryptable
+            assertEquals("passOne123", s.reveal(id1));
+            assertEquals("passTwo456", s.reveal(id2));
+        }
+
+        // Subsequent unlock works seamlessly with version 2
+        try (Vault.Session s = vault.unlock(master)) {
+            assertEquals("passOne123", s.reveal(id1));
+            assertEquals("passTwo456", s.reveal(id2));
+        }
+    }
 }
