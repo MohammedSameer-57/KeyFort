@@ -47,6 +47,9 @@ public class GuestPassEntity {
     @Column(length = 64)
     private String ownerUserId;
 
+    @Column(length = 64)
+    private String sessionId;
+
     @Version
     @Column(nullable = false)
     private Long version;
@@ -116,6 +119,8 @@ public class GuestPassEntity {
     public void setCredentialRef(String credentialRef) { this.credentialRef = credentialRef; }
     public String getOwnerUserId() { return ownerUserId; }
     public void setOwnerUserId(String ownerUserId) { this.ownerUserId = ownerUserId; }
+    public String getSessionId() { return sessionId; }
+    public void setSessionId(String sessionId) { this.sessionId = sessionId; }
     public Long getVersion() { return version; }
     public void setVersion(Long version) { this.version = version; }
 }

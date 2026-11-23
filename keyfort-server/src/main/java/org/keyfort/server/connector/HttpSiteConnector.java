@@ -157,10 +157,85 @@ public class HttpSiteConnector implements SiteConnector {
 
             Object scopeVal = map.get("scope");
             String scope = scopeVal != null ? scopeVal.toString() : "read";
+            String sessionId = (String) map.get("sessionId");
 
-            return new LoginEvent(ticketId, entryId, ts, "cred-" + ticketId, Map.of("scope", scope));
+            Map<String, String> meta = new java.util.HashMap<>();
+            meta.put("scope", scope);
+            if (sessionId != null) {
+                meta.put("sessionId", sessionId);
+            }
+
+            return new LoginEvent(ticketId, entryId, ts, "cred-" + ticketId, sessionId, meta);
         } catch (Exception e) {
             throw new ConnectorException("Failed to verify signed login event", e);
+        }
+    }
+
+    @Override
+    public org.keyfort.core.connector.GuestSessionInfo getSession(String sessionId) throws ConnectorException {
+        try {
+            long ts = clock.instant().getEpochSecond();
+            String nonce = Base64.getUrlEncoder().withoutPadding().encodeToString(Crypto.random(12));
+            String path = "/connector/sessions/" + sessionId;
+
+            String signature = HmacSigner.sign(secret, "GET", path, ts, nonce, "");
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(baseUrl + path))
+                    .timeout(Duration.ofSeconds(5))
+                    .header("X-KeyFort-Timestamp", String.valueOf(ts))
+                    .header("X-KeyFort-Nonce", nonce)
+                    .header("X-KeyFort-Signature", signature)
+                    .GET()
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200) {
+                throw new ConnectorException("Target site returned non-200 for session query. Status: " + response.statusCode());
+            }
+
+            Map<?, ?> map = objectMapper.readValue(response.body(), Map.class);
+            String respSessionId = (String) map.get("sessionId");
+            String status = (String) map.get("status");
+            String expiresAtStr = (String) map.get("expiresAt");
+            Instant expiresAt = expiresAtStr != null ? Instant.parse(expiresAtStr) : clock.instant();
+            Number remNum = (Number) map.get("remainingSeconds");
+            long remainingSeconds = remNum != null ? remNum.longValue() : 0L;
+
+            return new org.keyfort.core.connector.GuestSessionInfo(respSessionId, status, expiresAt, remainingSeconds);
+        } catch (ConnectorException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ConnectorException("Failed to query session via HTTP connector", e);
+        }
+    }
+
+    @Override
+    public void terminateSession(String sessionId) throws ConnectorException {
+        try {
+            long ts = clock.instant().getEpochSecond();
+            String nonce = Base64.getUrlEncoder().withoutPadding().encodeToString(Crypto.random(12));
+            String path = "/connector/sessions/" + sessionId;
+
+            String signature = HmacSigner.sign(secret, "DELETE", path, ts, nonce, "");
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(baseUrl + path))
+                    .timeout(Duration.ofSeconds(5))
+                    .header("X-KeyFort-Timestamp", String.valueOf(ts))
+                    .header("X-KeyFort-Nonce", nonce)
+                    .header("X-KeyFort-Signature", signature)
+                    .DELETE()
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 204 && response.statusCode() != 200) {
+                throw new ConnectorException("Failed to terminate session on target site. Status: " + response.statusCode());
+            }
+        } catch (ConnectorException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ConnectorException("Failed to terminate session via HTTP connector", e);
         }
     }
 }
