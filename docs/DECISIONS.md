@@ -165,3 +165,23 @@ Option 3. The server inspects `request.getRemoteAddr()`. If and only if the peer
 
 ### Trade-offs
 Deployments behind reverse proxies must configure `KEYFORT_TRUSTED_PROXIES` environment variable with proxy IP addresses or subnets.
+
+## 0010: Database-backed guest session control, dual timeout model, and BURNED state decoupling
+
+### Status
+Accepted
+
+### Context
+When a guest completes single-use ticket login on a cooperating site, the site issues a guest session. If the session exists only in an in-memory browser cookie or servlet session without persistent database checks, an owner has no mechanism to revoke access before standard cookie expiration. Furthermore, when the KeyFort server observes login and transitions the pass to `BURNED` to initiate vault rotation, abruptly terminating the guest's active browser session would corrupt the user experience during a legitimate single-use visit.
+
+### Options Considered
+1. Store session status purely in signed JWT cookies or in-memory servlet sessions with no database check; kill-switch cannot immediately invalidate live sessions across instances.
+2. Invalidate and terminate the live guest session immediately upon the pass reaching `BURNED`. Breaks the legitimate friend access workflow, as login instantly burns the pass and would prematurely kill the session before the friend can use the site.
+3. Decouple pass rotation from live session lifecycle; enforce dual timeout (hard TTL maximum bound and idle sliding window timeout) with every request validated directly against `GuestSessionRepository`. Provide an authenticated owner kill switch (`POST /api/guest-passes/{id}/end-session`) invoking `DELETE /connector/sessions/{id}` with HMAC signatures for immediate session revocation.
+
+### Decision
+Option 3. The guest pass transition to `BURNED` signals post-login single-use consumption and client key rotation, but explicitly does NOT terminate the live session on the target site. The live session is governed by a hard TTL (default 10 minutes) and an idle timeout (default 5 minutes, sliding on access). Every request to the target site validates the session against the database repository (`GuestSessionRepository`) for immediate kill-switch effect. The vault owner can query live session status (`GET /api/guest-passes/{id}/session`) and immediately terminate it (`POST /api/guest-passes/{id}/end-session`) via connector HMAC API, appending an audit record to the ledger.
+
+### Trade-offs
+Target sites incur a database lookup on protected requests, offset by immediate kill-switch enforcement and precise session lifetime boundaries.
+
