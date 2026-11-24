@@ -45,3 +45,9 @@ test {
         events "passed", "skipped", "failed"
     }
 }
+
+processResources {
+    from("${rootDir}/web") {
+        into('static')
+    }
+}
