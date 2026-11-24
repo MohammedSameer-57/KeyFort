@@ -121,6 +121,14 @@
             android:layout_marginTop="8dp" />
 
         <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_demo_login"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/demo_login"
+            android:layout_marginTop="8dp"
+            style="@style/Widget.Material3.Button.OutlinedButton" />
+
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_register"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

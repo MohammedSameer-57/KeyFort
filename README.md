@@ -1,8 +1,6 @@
 # KeyFort
 
-KeyFort is a credential vault featuring broker-assisted ephemeral guest passes, client-side encrypted passwords, and post-login key rotation.
-
-The server can see site names and usernames (site names are required to route requests to the appropriate connector SPI), but never has access to plaintext passwords or vault encryption keys. KeyFort does not claim full zero-knowledge confidentiality over metadata.
+KeyFort is a credential vault featuring broker-assisted ephemeral guest passes, target site connectors, and automatic post-login key rotation. The server can see site names and usernames, never passwords. KeyFort does not claim full zero-knowledge: site names stay readable so the server can select the appropriate site connector, and username encryption is planned as future work. Master secrets and entry passwords remain strictly client-side and encrypted under keys the server never holds.
 
 ## System Architecture
 
@@ -21,34 +19,27 @@ KeyFort provides a mechanism to grant temporary, single-use access to an account
 3. **Revocation and Rotation**: Upon receipt of a verified login webhook from the target site, the temporary credential is revoked, the token is burned, and KeyFort requests an atomic vault key rotation.
 4. **Assisted Mode**: For target sites lacking connector integration, KeyFort operates in an assisted mode that prompts the owner with an explicit reminder to rotate the real password after sharing.
 
-For threat boundaries, attacker profiles, and explicit limitations (such as active remote sessions and optical recording during live display), refer to [THREAT_MODEL.md](THREAT_MODEL.md).
-
-## Prototype and Simulation Notice
-
-The visual demonstration available in `preview.html` and the GitHub Pages deployment at `https://mohammedsameer-57.github.io/KeyFort/` are simulation prototypes only. They illustrate the target workflow and do not communicate with the backend server or execute cryptographic rotation. Integration of the live proof mode is scheduled for Phase 7.
+For threat boundaries, attacker profiles, and explicit limitations (such as active remote sessions and optical recording during live display), refer to [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md).
 
 ## Repository Structure
 
 ```text
 KeyFort/
-├── keyfort-core/          # Java 17 cryptographic primitives and state machine
-├── keyfort-server/        # Spring Boot 3 REST API and persistence layer
-├── keyfort-android/       # Android application (Java, XML, Fragments)
-├── docs/
-│   ├── API.md             # REST API specification
-│   ├── DECISIONS.md       # Architectural Decision Records (ADRs)
-│   ├── RUNNING.md         # Compilation, test execution, and deployment instructions
-│   └── index.html         # Hosted simulation prototype
-├── scripts/
-│   ├── START_KEYFORT.bat  # Windows Batch server launcher
-│   ├── START_KEYFORT.ps1  # Windows PowerShell server launcher
-│   ├── OPEN_DEMO.bat      # Browser launcher for simulation prototype
-│   └── SHARE_TO_PHONE.bat # SSH reverse port forward for mobile network testing
-├── preview.html           # Standalone browser simulation prototype
-├── Dockerfile             # Multi-stage container definition for keyfort-server
-├── THREAT_MODEL.md        # System threat model and non-goals
-├── CONTRIBUTING.md        # Contribution guidelines
-├── SECURITY.md            # Vulnerability reporting policy
+├── keyfort-core/          # Pure Java 17 cryptographic engine and state machine
+├── keyfort-demo-site/     # Cooperating mock service implementing connector SPI
+├── keyfort-server/        # Spring Boot 3 REST API, persistence, and orchestration
+├── keyfort-android/       # Native Android client (Java 17, XML, Fragments)
+├── web/                   # Self-contained vanilla JS Web UI
+├── scripts/               # One-click verification, execution, and test runners
+├── docs/                  # Architectural specs, threat models, and viva documentation
+├── build.gradle           # Multi-project root build definition
+├── settings.gradle        # Gradle project structure configuration
+├── gradle.properties      # Build flags and JVM configurations
+├── gradlew / gradlew.bat  # Gradle wrapper
+├── .gitattributes         # Line-ending and attribute configurations
+├── .gitignore             # Git exclusion rules
+├── README.md              # Project overview
+├── SECURITY.md            # Vulnerability disclosure policy
 └── LICENSE                # MIT License
 ```
 
@@ -66,7 +57,7 @@ Quick test run:
 ./gradlew test
 ```
 
-Architectural decisions and trade-offs are logged in [docs/DECISIONS.md](docs/DECISIONS.md).
+Architectural decisions and trade-offs are logged in [docs/DECISIONS.md](docs/DECISIONS.md). Technical deep-dive and viva preparation questions are available in [docs/EXPLAINER.md](docs/EXPLAINER.md), live presentation guidance in [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md), and final verification proofs in [docs/FINAL_REPORT.md](docs/FINAL_REPORT.md).
 
 ## License
 

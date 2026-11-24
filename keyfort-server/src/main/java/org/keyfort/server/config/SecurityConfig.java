@@ -73,16 +73,30 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/",
                                 "/index.html",
+                                "/demo",
+                                "/g/**",
                                 "/favicon.ico",
                                 "/static/**",
+                                "/css/**",
+                                "/js/**",
+                                "/*.css",
+                                "/*.js",
+                                "/*.woff2",
+                                "/fonts/**",
                                 "/error",
                                 "/auth/**",
+                                "/api/crypto-facts",
+                                "/api/demo/**",
                                 "/api/guest-passes/redeem",
                                 "/api/connector/events"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
-                .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::deny))
+                .headers(headers -> headers
+                        .frameOptions(HeadersConfigurer.FrameOptionsConfig::deny)
+                        .referrerPolicy(referrer -> referrer.policy(
+                                org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER))
+                )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

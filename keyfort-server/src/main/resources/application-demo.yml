@@ -1,0 +1,19 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:keyfort_demo;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+
+keyfort:
+  jwt:
+    secret: demo-only-insecure-test-jwt-secret-material-must-be-at-least-256-bits-long!!
+    expiration-ms: 86400000
+  connector:
+    secret: demo-connector-shared-secret-key-32b!!
+    base-url: http://localhost:9090

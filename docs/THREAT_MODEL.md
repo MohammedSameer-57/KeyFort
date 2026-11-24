@@ -2,12 +2,8 @@
 
 ## 1. System Overview and Security Objectives
 
-KeyFort is a credential vault and ephemeral guest pass broker. Passwords are encrypted client-side, and ephemeral guest passes allow single-use login without exposing master or site passwords.
-
-KeyFort does not claim full zero-knowledge confidentiality across all attributes: the server can see site names and account usernames, but never plaintext passwords or vault encryption keys.
-
-The primary objectives are:
-1. Protect permanent passwords from unauthorized access, sync server compromise, and unauthorized device sync.
+KeyFort is a credential vault and ephemeral guest pass broker. The server can see site names and usernames, never passwords. KeyFort does not claim full zero-knowledge: site names stay readable because the server uses them to choose the appropriate connector, and username encryption is future work. Master secrets and entry passwords remain strictly protected under client-side keys that the server never holds. The primary objectives are:
+1. Protect permanent credentials from unauthorized access, sync server compromise, and unauthorized device sync.
 2. Enable owners to grant single-use, temporary access to a cooperating target site without disclosing the owner's master password or permanent credentials.
 3. Eliminate credential replay risks by invalidating guest access immediately after first use and triggering vault key rotation.
 
@@ -40,9 +36,10 @@ The primary objectives are:
 
 ## 4. Current Implementation State and Server Visibility
 
-- **Plaintext Metadata Visibility**: In `org.keyfort.core.Entry`, JPA `EntryEntity`, and `EntryDto`, `site` and `username` fields remain plaintext. The `site` name stays readable because the server uses it to select the target `SiteConnector` SPI during pass creation and webhook routing. `username` encryption inside the sealed payload is deferred as future work to preserve client listing performance without decrypting all entries. The server can see site names and usernames, but never plaintext passwords or the DEK. (Architectural decision recorded in ADR 0011).
+- **Plaintext Metadata Visibility**: In `org.keyfort.core.Entry`, JPA `EntryEntity`, and `EntryDto`, `site` and `username` fields remain plaintext. The server can see site names and usernames, never passwords. Site stays readable because the server uses it to choose the connector; username encryption is future work. The server operator can observe which services an account possesses and associated usernames, but cannot read passwords or decrypt the DEK without the client-side master secret. (Architectural decision recorded in ADR 0011).
 - **JWT Key Fail-Fast**: Implemented in Phase 6. The server validates `KEYFORT_JWT_SECRET` on startup and aborts if missing or under 32 bytes (256 bits). Default fallback is strictly confined to `dev` and `test` profiles.
 - **Access Restrictions**: Protected endpoints require JWT authentication with explicit CORS allow-listing restricting authorized origins, headers, and HTTP methods.
+- **Demo Profile Master Key Gate**: In the `demo` profile (`DemoRunnerService`), the master key is submitted to the demo runner on localhost (`POST /api/demo/unlock`) strictly for live interactive presentation convenience to illustrate client-side unlocking, PBKDF2 stretching, session key scoping, and automatic client-side rotation. In the production architecture and real mobile/desktop apps, the master key is strictly client-side and never leaves local device memory; it is never transmitted over HTTP.
 
 ## 5. Security Guarantees (Phases 2-5 Target Design)
 

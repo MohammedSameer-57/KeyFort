@@ -1,7 +1,9 @@
 # Gradle
 .gradle/
 .gradle-home/
+.run/
 build/
+keyfort-server/src/main/resources/static/
 !gradle/wrapper/gradle-wrapper.jar
 
 # Java / IDE

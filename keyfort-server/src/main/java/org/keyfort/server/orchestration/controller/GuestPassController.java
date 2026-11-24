@@ -27,7 +27,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Duration;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import org.keyfort.server.orchestration.entity.GuestPassEntity;
 
 @RestController
 @RequestMapping
@@ -92,6 +94,24 @@ public class GuestPassController {
         return ResponseEntity.ok(result);
     }
 
+    @GetMapping("/api/guest-passes/{id}")
+    public ResponseEntity<Map<String, Object>> getGuestPass(
+            @PathVariable("id") String id,
+            Authentication authentication
+    ) {
+        String userId = authentication.getName();
+        GuestPassEntity pass = orchestrationService.getPassStatus(userId, id);
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("id", pass.getId());
+        resp.put("entryId", pass.getEntryId());
+        resp.put("scope", pass.getScope());
+        resp.put("state", pass.getState().name());
+        resp.put("hasSession", pass.getSessionId() != null);
+        resp.put("createdAt", pass.getCreatedAt());
+        resp.put("expiresAt", pass.getExpiresAt());
+        return ResponseEntity.ok(resp);
+    }
+
     @DeleteMapping("/api/guest-passes/{id}")
     public ResponseEntity<Map<String, String>> revokeGuestPass(
             @PathVariable("id") String id,
@@ -120,6 +140,14 @@ public class GuestPassController {
         String userId = authentication.getName();
         orchestrationService.endSession(userId, id);
         return ResponseEntity.ok(Map.of("status", "TERMINATED"));
+    }
+
+    @DeleteMapping("/api/guest-passes/{id}/session")
+    public ResponseEntity<Map<String, String>> deleteGuestSession(
+            @PathVariable("id") String id,
+            Authentication authentication
+    ) {
+        return endGuestSession(id, authentication);
     }
 
     @ExceptionHandler(RateLimitExceededException.class)

@@ -123,6 +123,42 @@ public class ApiClient {
         return execute(request);
     }
 
+    // ─── Guest Passes ───────────────────────────────────────────────────────
+
+    public String createGuestPass(String token, String entryId, int ttlSeconds) throws IOException {
+        String body = String.format(
+                "{\"entryId\":\"%s\",\"scope\":\"read-only\",\"ttlSeconds\":%d}",
+                escape(entryId), ttlSeconds);
+        return post(baseUrl + "/api/guest-passes", token, body);
+    }
+
+    public String getGuestPass(String token, String passId) throws IOException {
+        Request request = new Request.Builder()
+                .url(baseUrl + "/api/guest-passes/" + passId)
+                .addHeader("Authorization", "Bearer " + token)
+                .get()
+                .build();
+        return execute(request);
+    }
+
+    public String deleteGuestSession(String token, String passId) throws IOException {
+        Request request = new Request.Builder()
+                .url(baseUrl + "/api/guest-passes/" + passId + "/session")
+                .addHeader("Authorization", "Bearer " + token)
+                .delete()
+                .build();
+        return execute(request);
+    }
+
+    public String revokeGuestPass(String token, String passId) throws IOException {
+        Request request = new Request.Builder()
+                .url(baseUrl + "/api/guest-passes/" + passId)
+                .addHeader("Authorization", "Bearer " + token)
+                .delete()
+                .build();
+        return execute(request);
+    }
+
     // ─── Internal helpers ────────────────────────────────────────────────────
 
     private String post(String url, String token, String jsonBody) throws IOException {

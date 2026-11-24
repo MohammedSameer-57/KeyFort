@@ -58,6 +58,15 @@ public class UnlockActivity extends AppCompatActivity {
         btnBiometric = findViewById(R.id.btn_biometric);
         btnSwitchMode = findViewById(R.id.btn_switch_mode);
         btnForgotPassword = findViewById(R.id.btn_forgot_password);
+        Button btnDemoLogin = findViewById(R.id.btn_demo_login);
+        if (btnDemoLogin != null) {
+            btnDemoLogin.setOnClickListener(v -> {
+                etUserId.setText("demo-owner");
+                etDeviceId.setText("android-demo-device");
+                etPassword.setText("demo-vault-master-pass");
+                performLogin();
+            });
+        }
 
         btnLogin.setOnClickListener(v -> performLogin());
         btnRegister.setOnClickListener(v -> performRegister());
@@ -140,6 +149,7 @@ public class UnlockActivity extends AppCompatActivity {
                 // Sync vault from server and unlock
                 VaultRepository repo = new VaultRepository(getApplicationContext());
                 Vault vault = repo.syncFromServer(token, userId);
+                boolean wasRotationPending = vault.rotationPending();
                 Vault.Session session = vault.unlock(password);
 
                 // Save credentials
@@ -155,6 +165,12 @@ public class UnlockActivity extends AppCompatActivity {
                 appSession.setUserId(userId);
                 appSession.setDeviceId(deviceId);
                 appSession.setJwtToken(token);
+
+                if (wasRotationPending) {
+                    repo.syncToServer(appSession);
+                    String siteName = vault.entries().isEmpty() ? "vault" : vault.entries().values().iterator().next().site();
+                    runOnUiThread(() -> Toast.makeText(this, getString(R.string.key_renewed, siteName), Toast.LENGTH_LONG).show());
+                }
 
                 runOnUiThread(() -> {
                     Arrays.fill(password, '\0');

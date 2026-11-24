@@ -1,92 +1,91 @@
 # Running KeyFort
 
-This document details the operational commands to build, test, and run KeyFort components.
+## Quickstart (Three Commands)
 
-## Prerequisites
+1. `scripts\CHECK_SETUP.bat` - Verifies Java, Gradle, ports 8080/9090, Android SDK, and virtualization.
+2. `scripts\RUN_DEMO.bat` - Starts server and demo site, waiting until ready, then opens http://localhost:8080/demo.
+3. `scripts\STOP_DEMO.bat` - Stops all running demo processes and cleans up runtime state.
 
-- Java Development Kit (JDK) 17 or higher.
-- Git.
-- Optional: Android SDK (compileSdk 34) if compiling or testing `:keyfort-android`.
+---
 
-## Testing
+## Automated Test Execution
 
-Run the full automated test suite for available modules:
+To execute the automated test suite across all active modules:
 
-```bash
-# Linux / macOS
-./gradlew test
+```cmd
+scripts\RUN_TESTS.bat
+```
 
-# Windows
+Or via Gradle directly:
+
+```cmd
 .\gradlew.bat test
 ```
 
-If the Android SDK is not detected in environment variables (`ANDROID_HOME`, `ANDROID_SDK_ROOT`) or `local.properties`, Gradle automatically skips `:keyfort-android` and runs tests for `:keyfort-core` and `:keyfort-server`.
+When no Android SDK is detected, `:keyfort-android` is safely skipped, and tests run for `:keyfort-core`, `:keyfort-demo-site`, and `:keyfort-server`.
 
-To run tests for a specific module:
+---
 
-```bash
-.\gradlew.bat :keyfort-core:test
-.\gradlew.bat :keyfort-server:test
+## Emulator and Mobile Testing
+
+### 1. Prerequisites and Setup
+1. Install Android Studio with Android SDK Platform 34.
+2. In Android Studio Device Manager, create a virtual device (Pixel 7 / API 34 image).
+3. Ensure hardware virtualization (VT-x / AMD-V) is enabled in BIOS.
+4. Run `scripts\CHECK_SETUP.bat` to confirm all green checks.
+
+### 2. Running Demo with Android App
+1. Start the backend services:
+   ```cmd
+   scripts\RUN_DEMO.bat
+   ```
+2. Start the Android emulator from Android Studio or via command line:
+   ```cmd
+   emulator -avd <Your_AVD_Name>
+   ```
+3. Build and install the Android app:
+   ```cmd
+   .\gradlew.bat :keyfort-android:installDebug
+   ```
+4. Five-step live demo workflow:
+   - **Step 1 (Create Link)**: Open KeyFort on the device/emulator, tap "Create one-time link" for CinemaStream Family.
+   - **Step 2 (Share Link)**: Tap "Share link" to open Android share sheet or copy the URL. Open the link in emulator Chrome (`http://10.0.2.2:8080/g/{link}`).
+   - **Step 3 (Sign In as Friend)**: On the recipient page in Chrome, tap "Open CinemaStream Family". The friend is authenticated into a read-only guest session on `http://10.0.2.2:9090`.
+   - **Step 4 (Copied Link Refused)**: Re-open or paste the same link into a second tab. The request is rejected: "Refused: this link was already used once."
+   - **Step 5 (End Session & Key Renewal)**: Return to the KeyFort app, tap "End session". On next vault unlock, local key rotation executes, renewing the vault key.
+
+### 3. Physical USB Device Variant (Optional)
+To test with a physical Android device connected via USB:
+1. Enable USB Debugging on the phone.
+2. Reverse port forward both backend ports via adb:
+   ```cmd
+   adb reverse tcp:8080 tcp:8080
+   adb reverse tcp:9090 tcp:9090
+   ```
+3. Optional: Mirror device screen to desktop using `scrcpy`:
+   ```cmd
+   scrcpy
+   ```
+
+---
+
+## Port Conflicts & Troubleshooting
+
+If port `8080` (KeyFort Server) or `9090` (Demo Site) is in use by another process:
+
+### 1. Identify Conflicting Processes
+```powershell
+Get-NetTCPConnection -LocalPort 8080,9090 -State Listen -ErrorAction SilentlyContinue | Select-Object LocalPort, OwningProcess
 ```
 
-## Running the Server
-
-### Local Development via Gradle
-
-To start the Spring Boot service directly:
-
-```bash
-# Windows Batch
-scripts\START_KEYFORT.bat
-
-# Windows PowerShell
-powershell -ExecutionPolicy Bypass -File scripts\START_KEYFORT.ps1
-
-# Direct Gradle invocation
-.\gradlew.bat :keyfort-server:run
+### 2. Terminate Conflicting Processes (One-Liner)
+```powershell
+Get-NetTCPConnection -LocalPort 8080,9090 -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }
 ```
 
-The service listens on port 8080. By default, it operates with an in-memory H2 database.
-
-### Docker Container
-
-To package and run the server inside a container:
-
-```bash
-docker build -t keyfort-server .
-docker run -p 8080:8080 -e KEYFORT_JWT_SECRET="replace-with-a-32-byte-secret-key-material" keyfort-server
+### 3. Clean Stopped Processes
+If background Java processes linger after testing:
+```powershell
+Get-Process -Name java -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle -eq "" } | Stop-Process -Force
 ```
 
-## UI and Presentation Modes
-
-### Simulation Prototype
-
-The file `preview.html` contains an offline browser-based simulation prototype demonstrating the target workflow. To launch:
-
-```bash
-scripts\OPEN_DEMO.bat
-```
-
-Alternatively, open `preview.html` directly in any web browser.
-
-Note: Until Phase 7 implementation is complete, `preview.html` and the hosted GitHub Pages site remain simulation prototypes and are not connected to the live backend server.
-
-### Reverse Tunneling for Mobile Testing
-
-To expose the local server running on port 8080 to an external HTTPS URL for mobile browser verification:
-
-```bash
-scripts\SHARE_TO_PHONE.bat
-```
-
-This uses an SSH reverse port forward through `localhost.run`.
-
-## Android Application
-
-When the Android SDK is configured locally:
-
-```bash
-.\gradlew.bat :keyfort-android:assembleDebug
-```
-
-The compiled APK will be located under `keyfort-android/build/outputs/apk/debug/` (or the configured Gradle output path).

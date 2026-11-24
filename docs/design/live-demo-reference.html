@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KeyFort — Live Demo</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config" data-stitch-original-src="7a071afae6cdb4cd===../../tailwind.config.js">/** @type {import('tailwindcss').Config} */
+        globalThis.tailwind = globalThis.tailwind || {};
+        globalThis.tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'success': '#1D4F40',
+                        'on-success': '#FFFFFF',
+                        'success-container': '#D3E7DD',
+                        'on-success-container': '#002117',
+                        'warning': '#7A5218',
+                        'on-warning': '#FFFFFF',
+                        'warning-container': '#F7E7CE',
+                        'on-warning-container': '#3B2404',
+                        'light-primary': '#003629',
+                        'light-on-primary': '#FFFFFF',
+                        'light-primary-container': '#1B4D3E',
+                        'light-on-primary-container': '#FFFFFF',
+                        'light-secondary': '#50625B',
+                        'light-on-secondary': '#FFFFFF',
+                        'light-secondary-container': '#D0E4DA',
+                        'light-on-secondary-container': '#22342D',
+                        'light-tertiary': '#4C221C',
+                        'light-on-tertiary': '#FFFFFF',
+                        'light-tertiary-container': '#673831',
+                        'light-on-tertiary-container': '#FFFFFF',
+                        'light-error': '#BA1A1A',
+                        'light-on-error': '#FFFFFF',
+                        'light-error-container': '#FFDAD6',
+                        'light-on-error-container': '#93000A',
+                        'light-background': '#FCF9F2',
+                        'light-on-background': '#1C1C18',
+                        'light-surface': '#FCF9F2',
+                        'light-surface-dim': '#DCDAD3',
+                        'light-surface-bright': '#FCF9F2',
+                        'light-surface-container-lowest': '#FFFFFF',
+                        'light-surface-container-low': '#F6F3EC',
+                        'light-surface-container': '#F0EEE7',
+                        'light-surface-container-high': '#EBE8E1',
+                        'light-surface-container-highest': '#E5E2DB',
+                        'light-on-surface': '#1C1C18',
+                        'light-surface-variant': '#DCE5DF',
+                        'light-on-surface-variant': '#404945',
+                        'light-outline': '#707974',
+                        'light-outline-variant': '#C0C9C3',
+                        'light-inverse-surface': '#31312C',
+                        'light-inverse-on-surface': '#F3F0EA',
+                        'light-inverse-primary': '#9ED1BD',
+                        'dark-primary': '#9ED1BD',
+                        'dark-on-primary': '#00382A',
+                        'dark-primary-container': '#1B4D3E',
+                        'dark-on-primary-container': '#C8FCE7',
+                        'dark-secondary': '#B7CBC1',
+                        'dark-on-secondary': '#22342D',
+                        'dark-secondary-container': '#384B43',
+                        'dark-on-secondary-container': '#D3E7DD',
+                        'dark-tertiary': '#FAB6AC',
+                        'dark-on-tertiary': '#4E241E',
+                        'dark-tertiary-container': '#673831',
+                        'dark-on-tertiary-container': '#FFDAD5',
+                        'dark-error': '#FFB4AB',
+                        'dark-on-error': '#690005',
+                        'dark-error-container': '#93000A',
+                        'dark-on-error-container': '#FFDAD6',
+                        'dark-background': '#131410',
+                        'dark-on-background': '#E5E2DB',
+                        'dark-surface': '#131410',
+                        'dark-surface-dim': '#131410',
+                        'dark-surface-bright': '#3A3935',
+                        'dark-surface-container-lowest': '#0E0E0B',
+                        'dark-surface-container-low': '#1C1C18',
+                        'dark-surface-container': '#20201C',
+                        'dark-surface-container-high': '#2A2A26',
+                        'dark-surface-container-highest': '#353530',
+                        'dark-on-surface': '#E5E2DB',
+                        'dark-surface-variant': '#404945',
+                        'dark-on-surface-variant': '#C0C9C3',
+                        'dark-outline': '#8A938E',
+                        'dark-outline-variant': '#404945',
+                        'dark-inverse-surface': '#E5E2DB',
+                        'dark-inverse-on-surface': '#31312C',
+                        'dark-inverse-primary': '#376757',
+                    },
+                    borderRadius: {
+                        'sm': '4px',
+                        'DEFAULT': '8px',
+                        'md': '12px',
+                        'lg': '16px',
+                        'full': '9999px',
+                    },
+                    spacing: {
+                        'gutter-xs': '4px',
+                        'gutter-sm': '8px',
+                        'gutter-md': '16px',
+                        'gutter-lg': '24px',
+                        'gutter-xl': '32px',
+                        'section': '48px',
+                        'page-margin': '32px',
+                    },
+                    fontFamily: {
+                        'display': ['"Crimson Pro"', 'sans-serif'],
+                        'headline': ['"Crimson Pro"', 'sans-serif'],
+                        'title': ['"Commissioner"', 'sans-serif'],
+                        'body': ['"Commissioner"', 'sans-serif'],
+                        'label': ['"Commissioner"', 'sans-serif'],
+                        'mono': ['"Source Code Pro"', 'monospace'],
+                    },
+                    fontSize: {
+                        'display-lg': ['40px', { lineHeight: '46px', letterSpacing: '-0.5px', fontWeight: '600' }],
+                        'display-lg-mobile': ['30px', { lineHeight: '36px', letterSpacing: '-0.25px', fontWeight: '600' }],
+                        'headline-lg': ['28px', { lineHeight: '34px', letterSpacing: '-0.25px', fontWeight: '600' }],
+                        'headline-md': ['22px', { lineHeight: '28px', letterSpacing: '0px', fontWeight: '600' }],
+                        'title-lg': ['18px', { lineHeight: '24px', letterSpacing: '0px', fontWeight: '600' }],
+                        'title-md': ['16px', { lineHeight: '22px', letterSpacing: '0px', fontWeight: '600' }],
+                        'body-lg': ['16px', { lineHeight: '24px', letterSpacing: '0px', fontWeight: '400' }],
+                        'body-md': ['14px', { lineHeight: '21px', letterSpacing: '0px', fontWeight: '400' }],
+                        'label-lg': ['14px', { lineHeight: '20px', letterSpacing: '0.1px', fontWeight: '600' }],
+                        'label-sm': ['12px', { lineHeight: '16px', letterSpacing: '0.2px', fontWeight: '500' }],
+                        'mono-md': ['13px', { lineHeight: '18px', letterSpacing: '0px', fontWeight: '500' }],
+                    },
+                    transitionDuration: {
+                        'state-change': '120ms',
+                        'surface-enter': '220ms',
+                        'surface-exit': '150ms',
+                    },
+                    transitionDelay: {
+                        'state-change': '0ms',
+                        'surface-enter': '0ms',
+                        'surface-exit': '0ms',
+                    },
+                    transitionTimingFunction: {
+                        'state-change': 'ease-out',
+                        'surface-enter': 'cubic-bezier(0.2, 0, 0, 1)',
+                        'surface-exit': 'cubic-bezier(0.3, 0, 1, 1)',
+                    },
+                },
+            },
+        };
+        if (typeof module !== 'undefined') module.exports = globalThis.tailwind.config;
+    </script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Commissioner:wght@400;500;600&amp;family=Crimson+Pro:wght@600&amp;family=Source+Code+Pro:wght@500&amp;display=swap"
+        rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=block"
+        rel="stylesheet">
+    <style>
+        .material-symbols-outlined,
+        .material-symbols-rounded,
+        .material-symbols-sharp,
+        .material-icons {
+            display: inline-block;
+            width: 1em;
+            height: 1em;
+            line-height: 1 !important;
+            box-sizing: content-box;
+            overflow: hidden;
+            white-space: nowrap;
+            direction: ltr;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+
+<body class="bg-light-surface text-light-on-surface font-body antialiased">
+    <div class="min-h-[1024px] bg-light-surface text-light-on-surface flex flex-col"
+        data-stitch-vh="min-h-[1024px]===min-h-screen">
+        <!-- Top Bar -->
+        <header class="border-b border-light-outline-variant bg-light-surface">
+            <div
+                class="max-w-7xl mx-auto px-gutter-md md:px-page-margin py-gutter-md flex flex-wrap items-center justify-between gap-gutter-md">
+                <div class="flex items-center gap-gutter-md">
+                    <div
+                        class="w-9 h-9 rounded bg-light-primary text-light-on-primary flex items-center justify-center">
+                        <span class="material-symbols-outlined text-title-lg" aria-hidden="true">lock</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <span data-design-text-token="headline-md"
+                            class="font-headline text-headline-md text-light-on-surface leading-none">KeyFort</span>
+                        <span data-design-text-token="label-sm"
+                            class="font-label text-label-sm text-light-on-surface-variant">Let someone in once, without
+                            giving away the key</span>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-gutter-md">
+                    <span data-component-id="badge-status" data-component-type="badge" data-component-variant="status"
+                        role="status"
+                        class="inline-flex items-center gap-gutter-xs px-gutter-md py-gutter-xs rounded-full bg-light-surface-container-high text-light-on-surface-variant font-label text-label-sm whitespace-nowrap shrink-0">
+                        <span class="material-symbols-outlined text-body-md" aria-hidden="true">verified_user</span>
+                        <span data-design-text-token="label-sm">CinemaStream Family · Cooperating site</span>
+                    </span>
+
+                    <button id="btn-reset-demo" data-component-id="button-secondary" data-component-type="button"
+                        data-component-variant="secondary" type="button"
+                        class="inline-flex items-center justify-center gap-gutter-xs px-gutter-md py-gutter-sm rounded border border-light-outline-variant bg-light-surface-container-lowest text-light-on-surface font-label text-label-lg hover:bg-light-surface-container-low focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-light-primary transition-colors duration-state-change ease-state-change whitespace-nowrap shrink-0">
+                        <span class="material-symbols-outlined text-title-md" aria-hidden="true">restart_alt</span>
+                        <span data-design-text-token="label-lg">Start over</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main
+            class="flex-1 max-w-7xl w-full mx-auto px-gutter-md md:px-page-margin py-gutter-xl flex flex-col gap-gutter-xl">
+            <!-- Intro -->
+            <section class="flex flex-col gap-gutter-sm max-w-prose">
+                <h1 data-component-id="typography-display" data-component-type="typography"
+                    data-component-variant="display" data-design-text-token="display-lg"
+                    class="font-display text-display-lg-mobile md:text-display-lg text-light-on-surface text-balance">
+                    See what happens when you share a login once</h1>
+                <p data-component-id="typography-body" data-component-type="typography" data-component-variant="body"
+                    data-design-text-token="body-lg"
+                    class="font-body text-body-lg text-light-on-surface-variant text-pretty">Follow the same one-time
+                    link across three views: your vault, your friend&#39;s browser, and someone who copied the link.</p>
+            </section>
+
+            <!-- Three Columns -->
+            <section aria-label="Three perspectives"
+                class="grid grid-cols-1 lg:grid-cols-3 gap-gutter-lg items-stretch">
+                <!-- Column 1: You -->
+                <article data-component-id="card-action" data-component-type="card" data-component-variant="action"
+                    class="h-full flex flex-col justify-between gap-gutter-lg p-gutter-lg rounded-md bg-light-surface-container-lowest border border-light-outline-variant">
+                    <div class="flex flex-col gap-gutter-md">
+                        <header class="flex items-start justify-between gap-gutter-sm">
+                            <div class="flex flex-col gap-gutter-xs">
+                                <span data-design-text-token="label-sm"
+                                    class="font-label text-label-sm text-light-on-surface-variant">Vault owner</span>
+                                <h2 data-design-text-token="headline-md"
+                                    class="font-headline text-headline-md text-light-on-surface">You</h2>
+                            </div>
+                            <span id="owner-badge" data-component-id="badge-success" data-component-type="badge"
+                                data-component-variant="success" role="status"
+                                class="inline-flex items-center gap-gutter-xs px-gutter-md py-gutter-xs rounded-full bg-success-container text-on-success-container font-label text-label-sm">
+                                <span class="material-symbols-outlined text-body-md" aria-hidden="true">link</span>
+                                <span id="owner-badge-text" data-design-text-token="label-sm">Link ready</span>
+                            </span>
+                        </header>
+
+                        <!-- Vault Entry Box -->
+                        <div
+                            class="p-gutter-md rounded bg-light-surface-container-low border border-light-outline-variant flex flex-col gap-gutter-sm">
+                            <div class="flex items-center justify-between gap-gutter-sm">
+                                <span data-design-text-token="title-md"
+                                    class="font-title text-title-md text-light-on-surface">CinemaStream Family</span>
+                                <span id="vault-key-label" data-design-text-token="label-sm"
+                                    class="font-label text-label-sm text-light-on-surface-variant">Vault key
+                                    current</span>
+                            </div>
+                            <div class="flex items-center justify-between gap-gutter-sm">
+                                <span data-design-text-token="body-md"
+                                    class="font-body text-body-md text-light-on-surface-variant">family@household.org</span>
+                                <span data-design-text-token="mono-md"
+                                    class="font-mono text-mono-md text-light-on-surface-variant">••••••••••••</span>
+                            </div>
+                        </div>
+
+                        <!-- Owner Dynamic State -->
+                        <div id="owner-state-panel" class="flex flex-col gap-gutter-sm">
+                            <div class="flex items-center justify-between gap-gutter-sm">
+                                <span data-design-text-token="label-sm"
+                                    class="font-label text-label-sm text-light-on-surface-variant">One-time link</span>
+                                <span id="owner-countdown" data-design-text-token="mono-md"
+                                    class="font-mono text-mono-md text-light-primary tabular-nums">09:42
+                                    remaining</span>
+                            </div>
+                            <div
+                                class="flex items-center justify-between gap-gutter-sm p-gutter-sm rounded bg-light-surface-container border border-light-outline-variant">
+                                <span id="owner-link-text" data-design-text-token="mono-md"
+                                    class="font-mono text-mono-md text-light-on-surface truncate">keyfort.app/in/kf-94a2-7c1b</span>
+                                <button id="btn-copy-link" data-component-id="button-icon" data-component-type="button"
+                                    data-component-variant="icon" type="button" aria-label="Copy one-time link"
+                                    class="inline-flex items-center justify-center w-9 h-9 rounded border border-light-outline-variant bg-light-surface-container-lowest text-light-on-surface hover:bg-light-surface-container-low focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-light-primary transition-colors duration-state-change ease-state-change shrink-0">
+                                    <span class="material-symbols-outlined text-title-md"
+                                        aria-hidden="true">content_copy</span>
+                                </button>
+                            </div>
+                            <p id="owner-helper" data-design-text-token="body-md"
+                                class="font-body text-body-md text-light-on-surface-variant text-pretty">
+                                Your friend can sign in once without seeing or typing the real password.
+                            </p>
+                        </div>
+                    </div>
+
+                    <footer class="pt-gutter-md border-t border-light-outline-variant flex flex-col gap-gutter-sm">
+                        <button id="btn-owner-action" data-component-id="button-primary" data-component-type="button"
+                            data-component-variant="primary" type="button"
+                            class="w-full inline-flex items-center justify-center gap-gutter-sm px-gutter-lg py-gutter-sm rounded bg-light-primary text-light-on-primary font-label text-label-lg hover:bg-light-primary-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-light-primary focus-visible:ring-offset-2 transition-colors duration-state-change ease-state-change">
+                            <span id="owner-action-text" data-design-text-token="label-lg">Create new one-time
+                                link</span>
+                        </button>
+                    </footer>
+                </article>
+
+                <!-- Column 2: Your friend -->
+                <article data-component-id="card-action" data-component-type="card" data-component-variant="action"
+                    class="h-full flex flex-col justify-between gap-gutter-lg p-gutter-lg rounded-md bg-light-surface-container-lowest border border-light-outline-variant">
+                    <div class="flex flex-col gap-gutter-md">
+                        <header class="flex items-start justify-between gap-gutter-sm">
+                            <div class="flex flex-col gap-gutter-xs">
+                                <span data-design-text-token="label-sm"
+                                    class="font-label text-label-sm text-light-on-surface-variant">Invited guest</span>
+                                <h2 data-design-text-token="headline-md"
+                                    class="font-headline text-headline-md text-light-on-surface">Your friend</h2>
+                            </div>
+                            <span id="friend-badge" data-component-id="badge-status" data-component-type="badge"
+                                data-component-variant="status" role="status"
+                                class="inline-flex items-center gap-gutter-xs px-gutter-md py-gutter-xs rounded-full bg-light-surface-container-high text-light-on-surface-variant font-label text-label-sm">
+                                <span class="material-symbols-outlined text-body-md"
+                                    aria-hidden="true">hourglass_top</span>
+                                <span id="friend-badge-text" data-design-text-token="label-sm">Ready to open</span>
+                            </span>
+                        </header>
+
+                        <div id="friend-state-panel"
+                            class="p-gutter-md rounded bg-light-surface-container-low border border-light-outline-variant flex flex-col gap-gutter-sm">
+                            <div class="flex items-center gap-gutter-sm">
+                                <span class="material-symbols-outlined text-light-primary text-title-lg"
+                                    aria-hidden="true">tv</span>
+                                <span data-design-text-token="title-md"
+                                    class="font-title text-title-md text-light-on-surface">CinemaStream Family</span>
+                            </div>
+                            <p id="friend-helper" data-design-text-token="body-md"
+                                class="font-body text-body-md text-light-on-surface-variant text-pretty">
+                                You were invited to sign in once. The password stays hidden inside KeyFort.
+                            </p>
+                            <div id="friend-session-meta"
+                                class="hidden pt-gutter-sm border-t border-light-outline-variant flex items-center justify-between gap-gutter-sm">
+                                <span data-design-text-token="label-sm"
+                                    class="font-label text-label-sm text-light-on-surface-variant">Read-only guest
+                                    session</span>
+                                <span id="friend-session-timer" data-design-text-token="mono-md"
+                                    class="font-mono text-mono-md text-light-primary tabular-nums">14:59 left</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <footer class="pt-gutter-md border-t border-light-outline-variant flex flex-col gap-gutter-sm">
+                        <button id="btn-friend-action" data-component-id="button-with-icon" data-component-type="button"
+                            data-component-variant="with-icon" type="button"
+                            class="w-full inline-flex items-center justify-center gap-gutter-sm px-gutter-lg py-gutter-sm rounded bg-light-primary text-light-on-primary font-label text-label-lg hover:bg-light-primary-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-light-primary focus-visible:ring-offset-2 transition-colors duration-state-change ease-state-change">
+                            <span class="material-symbols-outlined text-title-md" aria-hidden="true">login</span>
+                            <span id="friend-action-text" data-design-text-token="label-lg">Sign in once</span>
+                        </button>
+                    </footer>
+                </article>
+
+                <!-- Column 3: Someone who copied it -->
+                <article data-component-id="card-action" data-component-type="card" data-component-variant="action"
+                    class="h-full flex flex-col justify-between gap-gutter-lg p-gutter-lg rounded-md bg-light-surface-container-lowest border border-light-outline-variant">
+                    <div class="flex flex-col gap-gutter-md">
+                        <header class="flex items-start justify-between gap-gutter-sm">
+                            <div class="flex flex-col gap-gutter-xs">
+                                <span data-design-text-token="label-sm"
+                                    class="font-label text-label-sm text-light-on-surface-variant">Forwarded link</span>
+                                <h2 data-design-text-token="headline-md"
+                                    class="font-headline text-headline-md text-light-on-surface">Someone who copied it
+                                </h2>
+                            </div>
+                            <span id="copier-badge" data-component-id="badge-status" data-component-type="badge"
+                                data-component-variant="status" role="status"
+                                class="inline-flex items-center gap-gutter-xs px-gutter-md py-gutter-xs rounded-full bg-light-surface-container-high text-light-on-surface-variant font-label text-label-sm whitespace-nowrap shrink-0">
+                                <span class="material-symbols-outlined text-body-md"
+                                    aria-hidden="true">content_paste</span>
+                                <span id="copier-badge-text" data-design-text-token="label-sm">Has a copy</span>
+                            </span>
+                        </header>
+
+                        <div id="copier-state-panel"
+                            class="p-gutter-md rounded bg-light-surface-container-low border border-light-outline-variant flex flex-col gap-gutter-sm">
+                            <span data-design-text-token="mono-md"
+                                class="font-mono text-mono-md text-light-on-surface-variant truncate">keyfort.app/in/kf-94a2-7c1b</span>
+                            <p id="copier-helper" data-design-text-token="body-md"
+                                class="font-body text-body-md text-light-on-surface-variant text-pretty">
+                                Once your friend signs in, this copied link is marked already used and will be refused.
+                            </p>
+                        </div>
+                    </div>
+
+                    <footer class="pt-gutter-md border-t border-light-outline-variant flex flex-col gap-gutter-sm">
+                        <button id="btn-copier-action" data-component-id="button-secondary" data-component-type="button"
+                            data-component-variant="secondary" type="button"
+                            class="w-full inline-flex items-center justify-center gap-gutter-sm px-gutter-lg py-gutter-sm rounded border border-light-outline-variant bg-light-surface-container-lowest text-light-on-surface font-label text-label-lg hover:bg-light-surface-container-low focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-light-primary transition-colors duration-state-change ease-state-change">
+                            <span id="copier-action-text" data-design-text-token="label-lg">Try copied link</span>
+                        </button>
+                    </footer>
+                </article>
+            </section>
+
+            <!-- Four-Step Timeline -->
+            <section aria-label="Four-step timeline"
+                class="p-gutter-lg rounded-md bg-light-surface-container-low border border-light-outline-variant flex flex-col gap-gutter-lg">
+                <div class="flex flex-wrap items-center justify-between gap-gutter-sm">
+                    <h2 data-design-text-token="headline-md"
+                        class="font-headline text-headline-md text-light-on-surface">How this link moves through KeyFort
+                    </h2>
+                    <span id="timeline-status-label" data-design-text-token="label-sm"
+                        class="font-label text-label-sm text-light-on-surface-variant">Step 1 of 4 · Link created</span>
+                </div>
+
+                <ol class="grid grid-cols-1 md:grid-cols-4 gap-gutter-md">
+                    <li id="step-1"
+                        class="p-gutter-md rounded bg-light-surface-container-lowest border border-light-primary flex flex-col gap-gutter-xs">
+                        <div class="flex items-center gap-gutter-sm">
+                            <span
+                                class="w-6 h-6 rounded-full bg-light-primary text-light-on-primary font-label text-label-sm inline-flex items-center justify-center tabular-nums">1</span>
+                            <span data-design-text-token="title-md"
+                                class="font-title text-title-md text-light-on-surface">Link created</span>
+                        </div>
+                        <p data-design-text-token="body-md"
+                            class="font-body text-body-md text-light-on-surface-variant">Single-use link issued with a
+                            10-minute countdown.</p>
+                    </li>
+
+                    <li id="step-2"
+                        class="p-gutter-md rounded bg-light-surface-container-low border border-light-outline-variant flex flex-col gap-gutter-xs">
+                        <div class="flex items-center gap-gutter-sm">
+                            <span
+                                class="w-6 h-6 rounded-full bg-light-surface-container-high text-light-on-surface font-label text-label-sm inline-flex items-center justify-center tabular-nums">2</span>
+                            <span data-design-text-token="title-md"
+                                class="font-title text-title-md text-light-on-surface">Signed in once</span>
+                        </div>
+                        <p data-design-text-token="body-md"
+                            class="font-body text-body-md text-light-on-surface-variant">Friend opens the site; link is
+                            marked already used.</p>
+                    </li>
+
+                    <li id="step-3"
+                        class="p-gutter-md rounded bg-light-surface-container-low border border-light-outline-variant flex flex-col gap-gutter-xs">
+                        <div class="flex items-center gap-gutter-sm">
+                            <span
+                                class="w-6 h-6 rounded-full bg-light-surface-container-high text-light-on-surface font-label text-label-sm inline-flex items-center justify-center tabular-nums">3</span>
+                            <span data-design-text-token="title-md"
+                                class="font-title text-title-md text-light-on-surface">Copied link refused</span>
+                        </div>
+                        <p data-design-text-token="body-md"
+                            class="font-body text-body-md text-light-on-surface-variant">Every later attempt with the
+                            copied link is blocked.</p>
+                    </li>
+
+                    <li id="step-4"
+                        class="p-gutter-md rounded bg-light-surface-container-low border border-light-outline-variant flex flex-col gap-gutter-xs">
+                        <div class="flex items-center gap-gutter-sm">
+                            <span
+                                class="w-6 h-6 rounded-full bg-light-surface-container-high text-light-on-surface font-label text-label-sm inline-flex items-center justify-center tabular-nums">4</span>
+                            <span data-design-text-token="title-md"
+                                class="font-title text-title-md text-light-on-surface">Vault key renewed</span>
+                        </div>
+                        <p data-design-text-token="body-md"
+                            class="font-body text-body-md text-light-on-surface-variant">Owner&#39;s vault is flagged
+                            and renewed at next unlock.</p>
+                    </li>
+                </ol>
+            </section>
+
+            <!-- Tamper-Evident History & Honest Scope -->
+            <section class="grid grid-cols-1 lg:grid-cols-3 gap-gutter-lg items-start">
+                <div
+                    class="lg:col-span-2 p-gutter-lg rounded-md bg-light-surface-container-lowest border border-light-outline-variant flex flex-col gap-gutter-md">
+                    <div class="flex items-center justify-between gap-gutter-sm">
+                        <h3 data-design-text-token="title-lg" class="font-title text-title-lg text-light-on-surface">
+                            Tamper-evident history</h3>
+                        <span data-design-text-token="label-sm"
+                            class="font-label text-label-sm text-light-on-surface-variant">Signed entries</span>
+                    </div>
+                    <ul id="audit-log" class="flex flex-col gap-gutter-sm">
+                        <li
+                            class="flex flex-wrap items-center justify-between gap-gutter-sm py-gutter-xs border-b border-light-outline-variant">
+                            <span data-design-text-token="body-md"
+                                class="font-body text-body-md text-light-on-surface">One-time link created for
+                                CinemaStream Family</span>
+                            <span data-design-text-token="mono-md"
+                                class="font-mono text-mono-md text-light-on-surface-variant tabular-nums">08:14:02 ·
+                                #8f3a…c91e</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <aside
+                    class="p-gutter-lg rounded-md bg-light-surface-container-low border border-light-outline-variant flex flex-col gap-gutter-xs">
+                    <h3 data-design-text-token="title-md" class="font-title text-title-md text-light-on-surface">Honest
+                        limits</h3>
+                    <p data-design-text-token="body-md"
+                        class="font-body text-body-md text-light-on-surface-variant text-pretty">
+                        KeyFort cannot stop someone from filming their screen during the one allowed session, or acting
+                        inside that live session before you end it.
+                    </p>
+                </aside>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        (function () {
+            var state = {
+                phase: 'link_ready', // 'idle' | 'link_ready' | 'signed_in' | 'ended' | 'renewed'
+                copiedBlocked: false,
+                secondsLeft: 582,
+                sessionSeconds: 899,
+                logs: [
+                    { text: 'One-time link created for CinemaStream Family', meta: '08:14:02 · #8f3a…c91e' }
+                ]
+            };
+
+            var ownerBadge = document.getElementById('owner-badge');
+            var ownerBadgeText = document.getElementById('owner-badge-text');
+            var vaultKeyLabel = document.getElementById('vault-key-label');
+            var ownerCountdown = document.getElementById('owner-countdown');
+            var ownerHelper = document.getElementById('owner-helper');
+            var btnOwnerAction = document.getElementById('btn-owner-action');
+            var ownerActionText = document.getElementById('owner-action-text');
+
+            var friendBadge = document.getElementById('friend-badge');
+            var friendBadgeText = document.getElementById('friend-badge-text');
+            var friendHelper = document.getElementById('friend-helper');
+            var friendSessionMeta = document.getElementById('friend-session-meta');
+            var friendSessionTimer = document.getElementById('friend-session-timer');
+            var btnFriendAction = document.getElementById('btn-friend-action');
+            var friendActionText = document.getElementById('friend-action-text');
+
+            var copierBadge = document.getElementById('copier-badge');
+            var copierBadgeText = document.getElementById('copier-badge-text');
+            var copierHelper = document.getElementById('copier-helper');
+            var btnCopierAction = document.getElementById('btn-copier-action');
+            var copierActionText = document.getElementById('copier-action-text');
+
+            var timelineStatus = document.getElementById('timeline-status-label');
+            var auditLogEl = document.getElementById('audit-log');
+            var btnReset = document.getElementById('btn-reset-demo');
+            var btnCopy = document.getElementById('btn-copy-link');
+
+            function fmtTime(sec) {
+                var m = Math.floor(sec / 60);
+                var s = sec % 60;
+                return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+            }
+
+            function nowStamp() {
+                var d = new Date();
+                return d.toTimeString().slice(0, 8);
+            }
+
+            function addLog(text) {
+                var hex = Math.floor(1000 + Math.random() * 9000).toString(16);
+                state.logs.unshift({ text: text, meta: nowStamp() + ' · #' + hex + '…e41b' });
+                if (state.logs.length > 4) state.logs.pop();
+            }
+
+            function setStep(num, active, done) {
+                var el = document.getElementById('step-' + num);
+                if (!el) return;
+                var numBadge = el.querySelector('span');
+                el.classList.remove('border-light-primary', 'border-light-outline-variant', 'bg-light-surface-container-lowest', 'bg-light-surface-container-low');
+                numBadge.classList.remove('bg-light-primary', 'text-light-on-primary', 'bg-success-container', 'text-on-success-container', 'bg-light-surface-container-high', 'text-light-on-surface');
+                if (active) {
+                    el.classList.add('border-light-primary', 'bg-light-surface-container-lowest');
+                    numBadge.classList.add('bg-light-primary', 'text-light-on-primary');
+                } else if (done) {
+                    el.classList.add('border-light-outline-variant', 'bg-light-surface-container-lowest');
+                    numBadge.classList.add('bg-success-container', 'text-on-success-container');
+                } else {
+                    el.classList.add('border-light-outline-variant', 'bg-light-surface-container-low');
+                    numBadge.classList.add('bg-light-surface-container-high', 'text-light-on-surface');
+                }
+            }
+
+            function render() {
+                // Owner column
+                if (state.phase === 'idle') {
+                    ownerBadge.className = 'inline-flex items-center gap-gutter-xs px-gutter-md py-gutter-xs rounded-full bg-light-surface-container-high text-light-on-surface-variant font-label text-label-sm whitespace-nowrap shrink-0';
+                    ownerBadgeText.textContent = 'No active link';
+                    vaultKeyLabel.textContent = 'Vault key current';
+                    ownerCountdown.textContent = 'Not issued';
+                    ownerHelper.textContent = 'Create a one-time link to let your friend in without sharing the password.';
+                    btnOwnerAction.setAttribute('data-component-id', 'button-primary');
+                    btnOwnerAction.setAttribute('data-component-variant', 'primary');
+                    btnOwnerAction.className = 'w-full inline-flex items-center justify-center gap-gutter-sm px-gutter-lg py-gutter-sm rounded bg-light-primary text-light-on-primary font-label text-label-lg hover:bg-light-primary-container transition-colors duration-state-change ease-state-change';
+                    ownerActionText.textContent = 'Create one-time link';
+                } else if (state.phase === 'link_ready') {
+                    ownerBadge.className = 'inline-flex items-center gap-gutter-xs px-gutter-md py-gutter-xs rounded-full bg-success-container text-on-success-container font-label text-label-sm whitespace-nowrap shrink-0';
+                    ownerBadgeText.textContent = 'Link ready';
+                    vaultKeyLabel.textContent = 'Vault key current';
+                    ownerCountdown.textContent = fmtTime(state.secondsLeft) + ' remaining';
+                    ownerHelper.textContent = 'Your friend can sign in once without seeing or typing the real password.';
+                    btnOwnerAction.setAttribute('data-component-id', 'button-secondary');
+                    btnOwnerAction.setAttribute('data-component-variant', 'secondary');
+                    btnOwnerAction.className = 'w-full inline-flex items-center justify-center gap-gutter-sm px-gutter-lg py-gutter-sm rounded border border-light-outline-variant bg-light-surface-container-lowest text-light-on-surface font-label text-label-lg hover:bg-light-surface-container-low transition-colors duration-state-change ease-state-change';
+                    ownerActionText.textContent = 'Cancel link';
+                } else if (state.phase === 'signed_in') {
+                    ownerBadge.className = 'inline-flex items-center gap-gutter-xs px-gutter-md py-gutter-xs rounded-full bg-warning-container text-on-warning-container font-label text-label-sm whitespace-nowrap shrink-0';
+                    ownerBadgeText.textContent = 'Guest signed in';
+                    vaultKeyLabel.textContent = 'Vault key renewal pending';
+                    ownerCountdown.textContent = 'Already used';
+                    ownerHelper.textContent = 'Your friend is in. Your vault is flagged and will renew its key at your next unlock.';
+                    btnOwnerAction.setAttribute('data-component-id', 'button-destructive');
+                    btnOwnerAction.setAttribute('data-component-variant', 'destructive');
+                    btnOwnerAction.className = 'w-full inline-flex items-center justify-center gap-gutter-sm px-gutter-lg py-gutter-sm rounded border border-light-error bg-light-surface-container-lowest text-light-error font-label text-label-lg hover:bg-light-error-container hover:text-light-on-error-container transition-colors duration-state-change ease-state-change';
+                    ownerActionText.textContent = 'End session now';
+                } else if (state.phase === 'ended') {
+                    ownerBadge.className = 'inline-flex items-center gap-gutter-xs px-gutter-md py-gutter-xs rounded-full bg-warning-container text-on-warning-container font-label text-label-sm whitespace-nowrap shrink-0';
+                    ownerBadgeText.textContent = 'Session ended';
+                    vaultKeyLabel.textContent = 'Vault key renewal pending';
+                    ownerCountdown.textContent = 'Already used';
+                    ownerHelper.textContent = 'Guest access ended immediately. Unlock your vault to renew its encryption key.';
+                    btnOwnerAction.setAttribute('data-component-id', 'button-primary');
+                    btnOwnerAction.setAttribute('data-component-variant', 'primary');
+                    btnOwnerAction.className = 'w-full inline-flex items-center justify-center gap-gutter-sm px-gutter-lg py-gutter-sm rounded bg-light-primary text-light-on-primary font-label text-label-lg hover:bg-light-primary-container transition-colors duration-state-change ease-state-change';
+                    ownerActionText.textContent = 'Unlock & renew vault key';
+                } else if (state.phase === 'renewed') {
+                    ownerBadge.className = 'inline-flex items-center gap-gutter-xs px-gutter-md py-gutter-xs rounded-full bg-success-container text-on-success-container font-label text-label-sm whitespace-nowrap shrink-0';
+                    ownerBadgeText.textContent = 'Vault key renewed';
+                    vaultKeyLabel.textContent = 'Vault key renewed';
+                    ownerCountdown.textContent = 'Already used';
+                    ownerHelper.textContent = 'Your vault now uses a fresh encryption key. The previous link cannot be used again.';
+                    btnOwnerAction.setAttribute('data-component-id', 'button-primary');
+                    btnOwnerAction.setAttribute('data-component-variant', 'primary');
+                    btnOwnerAction.className = 'w-full inline-flex items-center justify-center gap-gutter-sm px-gutter-lg py-gutter-sm rounded bg-light-primary text-light-on-primary font-label text-label-lg hover:bg-light-primary-container transition-colors duration-state-change ease-state-change';
+                    ownerActionText.textContent = 'Create another link';
+                }
+
+                // Friend column
+                if (state.phase === 'idle') {
+                    friendBadge.className = 'inline-flex items-center gap-gutter-xs px-gutter-md py-gutter-xs rounded-full bg-light-surface-container-high text-light-on-surface-variant font-label text-label-sm';
+                    friendBadgeText.textContent = 'Waiting for link';
+                    friendHelper.textContent = 'Waiting for the vault owner to create a one-time link.';
+                    friendSessionMeta.classList.add('hidden');
+                    btnFriendAction.disabled = true;
+                    btnFriendAction.className = 'w-full inline-flex items-center justify-center gap-gutter-sm px-gutter-lg py-gutter-sm rounded bg-light-surface-container-highest text-light-outline font-label text-label-lg cursor-not-allowed';
+                    friendActionText.textContent = 'Waiting for link';
+                } else if (state.phase === 'link_ready') {
+                    friendBadge.className = 'inline-flex items-center gap-gutter-xs px-gutter-md py-gutter-xs rounded-full bg-light-surface-container-high text-light-on-surface-variant font-label text-label-sm';
+                    friendBadgeText.textContent = 'Ready to open';
+                    friendHelper.textContent = 'You were invited to sign in once. The password stays hidden inside KeyFort.';
+                    friendSessionMeta.classList.add('hidden');
+                    btnFriendAction.disabled = false;
+                    btnFriendAction.className = 'w-full inline-flex items-center justify-center gap-gutter-sm px-gutter-lg py-gutter-sm rounded bg-light-primary text-light-on-primary font-label text-label-lg hover:bg-light-primary-container transition-colors duration-state-change ease-state-change';
+                    friendActionText.textContent = 'Sign in once';
+                } else if (state.phase === 'signed_in') {
+                    friendBadge.className = 'inline-flex items-center gap-gutter-xs px-gutter-md py-gutter-xs rounded-full bg-success-container text-on-success-container font-label text-label-sm';
+                    friendBadgeText.textContent = 'Signed in once';
+                    friendHelper.textContent = 'You are signed into CinemaStream Family. The link is now marked already used.';
+                    friendSessionMeta.classList.remove('hidden');
+                    friendSessionTimer.textContent = fmtTime(state.sessionSeconds) + ' left';
+                    btnFriendAction.disabled = true;
+                    btnFriendAction.className = 'w-full inline-flex items-center justify-center gap-gutter-sm px-gutter-lg py-gutter-sm rounded bg-light-surface-container-highest text-light-outline font-label text-label-lg cursor-not-allowed';
+                    friendActionText.textContent = 'Link already used';
+                } else {
+                    friendBadge.className = 'inline-flex items-center gap-gutter-xs px-gutter-md py-gutter-xs rounded-full bg-light-error-container text-light-on-error-container font-label text-label-sm';
+                    friendBadgeText.textContent = 'Session ended';
+                    friendHelper.textContent = 'Your guest session was ended by the owner. Ask for a new link if you need access again.';
+                    friendSessionMeta.classList.add('hidden');
+                    btnFriendAction.disabled = true;
+                    btnFriendAction.className = 'w-full inline-flex items-center justify-center gap-gutter-sm px-gutter-lg py-gutter-sm rounded bg-light-surface-container-highest text-light-outline font-label text-label-lg cursor-not-allowed';
+                    friendActionText.textContent = 'Session ended';
+                }
+
+                // Copier column
+                if (state.phase === 'idle') {
+                    copierBadge.className = 'inline-flex items-center gap-gutter-xs px-gutter-md py-gutter-xs rounded-full bg-light-surface-container-high text-light-on-surface-variant font-label text-label-sm whitespace-nowrap shrink-0';
+                    copierBadgeText.textContent = 'No link yet';
+                    copierHelper.textContent = 'No link has been shared yet.';
+                    btnCopierAction.disabled = true;
+                } else if (state.copiedBlocked) {
+                    copierBadge.className = 'inline-flex items-center gap-gutter-xs px-gutter-md py-gutter-xs rounded-full bg-light-error-container text-light-on-error-container font-label text-label-sm whitespace-nowrap shrink-0';
+                    copierBadgeText.textContent = 'Refused · Already used';
+                    copierHelper.textContent = 'Refused: this link was already used once. Every later attempt with a copied link is blocked.';
+                    btnCopierAction.disabled = false;
+                    copierActionText.textContent = 'Try copied link again';
+                } else {
+                    copierBadge.className = 'inline-flex items-center gap-gutter-xs px-gutter-md py-gutter-xs rounded-full bg-light-surface-container-high text-light-on-surface-variant font-label text-label-sm whitespace-nowrap shrink-0';
+                    copierBadgeText.textContent = 'Has a copy';
+                    copierHelper.textContent = 'Once your friend signs in, this copied link is marked already used and will be refused.';
+                    btnCopierAction.disabled = false;
+                    copierActionText.textContent = 'Try copied link';
+                }
+
+                // Timeline
+                var stepNum = 1;
+                if (state.phase === 'idle') stepNum = 0;
+                else if (state.phase === 'link_ready') stepNum = 1;
+                else if (state.phase === 'signed_in' && !state.copiedBlocked) stepNum = 2;
+                else if ((state.phase === 'signed_in' || state.phase === 'ended') && state.copiedBlocked) stepNum = 3;
+                else if (state.phase === 'ended') stepNum = 3;
+                else if (state.phase === 'renewed') stepNum = 4;
+
+                setStep(1, stepNum === 1, stepNum > 1);
+                setStep(2, stepNum === 2, stepNum > 2);
+                setStep(3, stepNum === 3, stepNum > 3);
+                setStep(4, stepNum === 4, false);
+
+                var labels = [
+                    'Ready · Create a link to begin',
+                    'Step 1 of 4 · Link created',
+                    'Step 2 of 4 · Signed in once',
+                    'Step 3 of 4 · Copied link refused',
+                    'Step 4 of 4 · Vault key renewed'
+                ];
+                timelineStatus.textContent = labels[stepNum];
+
+                // Audit log
+                auditLogEl.innerHTML = state.logs.map(function (entry) {
+                    return '<li class="flex flex-wrap items-center justify-between gap-gutter-sm py-gutter-xs border-b border-light-outline-variant">' +
+                        '<span class="font-body text-body-md text-light-on-surface">' + entry.text + '</span>' +
+                        '<span class="font-mono text-mono-md text-light-on-surface-variant tabular-nums">' + entry.meta + '</span>' +
+                        '</li>';
+                }).join('');
+            }
+
+            btnOwnerAction.addEventListener('click', function () {
+                if (state.phase === 'idle' || state.phase === 'renewed') {
+                    state.phase = 'link_ready';
+                    state.copiedBlocked = false;
+                    state.secondsLeft = 600;
+                    addLog('One-time link created for CinemaStream Family');
+                } else if (state.phase === 'link_ready') {
+                    state.phase = 'idle';
+                    addLog('One-time link cancelled by vault owner');
+                } else if (state.phase === 'signed_in') {
+                    state.phase = 'ended';
+                    addLog('Guest session ended immediately by vault owner');
+                } else if (state.phase === 'ended') {
+                    state.phase = 'renewed';
+                    addLog('Vault key renewed on owner device at unlock');
+                }
+                render();
+            });
+
+            btnFriendAction.addEventListener('click', function () {
+                if (state.phase === 'link_ready') {
+                    state.phase = 'signed_in';
+                    state.sessionSeconds = 899;
+                    addLog('Friend signed in once; link marked already used');
+                    render();
+                }
+            });
+
+            btnCopierAction.addEventListener('click', function () {
+                if (state.phase === 'link_ready') {
+                    state.phase = 'signed_in';
+                    state.copiedBlocked = false;
+                    addLog('Copied link used first; original friend will be refused');
+                } else if (state.phase === 'signed_in' || state.phase === 'ended' || state.phase === 'renewed') {
+                    state.copiedBlocked = true;
+                    addLog('Copied link refused (already used)');
+                }
+                render();
+            });
+
+            btnReset.addEventListener('click', function () {
+                state.phase = 'idle';
+                state.copiedBlocked = false;
+                state.secondsLeft = 600;
+                state.logs = [{ text: 'Demo reset · Ready to create a one-time link', meta: nowStamp() + ' · #0a1c…f002' }];
+                render();
+            });
+
+            if (btnCopy) {
+                btnCopy.addEventListener('click', function () {
+                    addLog('One-time link copied to clipboard');
+                    render();
+                });
+            }
+
+            render();
+        })();
+    </script>
+
+
+</body>
+
+</html>

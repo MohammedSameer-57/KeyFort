@@ -78,12 +78,19 @@ public class EntryDetailDialog extends DialogFragment {
         TextView tvUsername = view.findViewById(R.id.tv_detail_username);
         TextView tvPassword = view.findViewById(R.id.tv_detail_password);
         Button btnReveal = view.findViewById(R.id.btn_reveal);
+        Button btnGuestPass = view.findViewById(R.id.btn_create_guest_pass);
         Button btnEdit = view.findViewById(R.id.btn_edit);
         Button btnDelete = view.findViewById(R.id.btn_delete);
 
         tvSite.setText(site);
         tvUsername.setText(username);
 
+        if (btnGuestPass != null) {
+            btnGuestPass.setOnClickListener(v -> {
+                GuestPassDialog dialog = GuestPassDialog.newInstance(entryId, site);
+                dialog.show(getParentFragmentManager(), "guest_pass");
+            });
+        }
         btnReveal.setOnClickListener(v -> revealPassword(entryId, tvPassword));
         btnEdit.setOnClickListener(v -> showEditDialog(entryId, site, username));
         btnDelete.setOnClickListener(v -> deleteEntry(entryId));
