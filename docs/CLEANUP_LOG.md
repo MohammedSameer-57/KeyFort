@@ -11,4 +11,6 @@ This log records every structural restructuring, file relocation, and deletion p
 | 2026-11-24 | Delete | `.github/` | - | Removing issue templates per Section B2. | Green (100/100) |
 | 2026-11-24 | Delete | `CONTRIBUTING.md` | - | Streamlining root tree per Section B1. | Green (100/100) |
 | 2026-11-24 | Delete | `scripts/OPEN_DEMO.bat`, `scripts/SHARE_TO_PHONE.bat` | - | Superseded by standard `RUN_DEMO` launchers. | Green (100/100) |
+| 2026-11-24 | Delete | `scripts/START_KEYFORT.bat`, `scripts/START_KEYFORT.ps1` | - | Superseded by `RUN_DEMO` which launches both servers with ephemeral secrets. | Green (100/100) |
 | 2026-11-24 | Delete | `preview.html` | - | Removing obsolete standalone simulation prototype per Section B2. | Green (100/100) |
+| 2026-11-24 | Clean | `web/app.js`, `web/index.html`, `web/style.css`, `web/sw.js` | - | Removing empty web placeholders to be provided separately. | Green (100/100) |
