@@ -42,7 +42,7 @@ public class JwtService {
 
     private static byte[] validateSecret(String secret, Environment env) {
         boolean isDevOrTest = env != null && Arrays.stream(env.getActiveProfiles())
-                .anyMatch(p -> "dev".equalsIgnoreCase(p) || "test".equalsIgnoreCase(p));
+                .anyMatch(p -> "dev".equalsIgnoreCase(p) || "test".equalsIgnoreCase(p) || "demo".equalsIgnoreCase(p));
 
         if (secret == null || secret.isBlank()) {
             if (isDevOrTest) {
