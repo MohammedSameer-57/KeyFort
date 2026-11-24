@@ -16,5 +16,7 @@ public record DemoStateDto(
         boolean signatureVerified,
         int replaysRefusedCount,
         String latestLedgerHashPrefix,
-        List<DemoLogEntryDto> logs
+        List<DemoLogEntryDto> logs,
+        boolean unlocked,
+        String masterKeyHint
 ) {}

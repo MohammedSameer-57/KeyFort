@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KeyFort live demo</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body class="booting">
+  <div class="page">
+    <header class="topbar">
+      <div class="brand">
+        <span class="logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <rect x="5" y="11" width="14" height="9" rx="2"></rect>
+            <path d="M8 11V8a4 4 0 0 1 8 0v3"></path>
+          </svg>
+        </span>
+        <div>
+          <div class="wordmark">KeyFort</div>
+          <div class="tagline">Let someone in once, without giving away the key</div>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <span class="badge badge-neutral">CinemaStream Family · Cooperating site</span>
+        <button type="button" class="btn btn-secondary" id="btn-reset">Start over</button>
+        <button type="button" class="btn btn-secondary" id="btn-lock" hidden>Lock vault</button>
+      </div>
+    </header>
+
+    <section id="gate" class="gate" hidden aria-labelledby="gate-title">
+      <div class="gate-card">
+        <div class="gate-lock" id="gate-lock" aria-hidden="true">
+          <svg viewBox="0 0 64 64" width="64" height="64" fill="none" stroke="currentColor" stroke-width="3"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path class="shackle" d="M20 28v-8a12 12 0 0 1 24 0v8" />
+            <rect x="14" y="28" width="36" height="26" rx="5" />
+            <circle cx="32" cy="40" r="3" />
+            <path d="M32 43v5" />
+          </svg>
+        </div>
+        <h1 id="gate-title">Unlock your vault</h1>
+        <p class="muted">Enter your master key to open the vault. Without it, nothing inside can be read.</p>
+        <div class="field">
+          <label for="master-key" class="eyebrow">Master key</label>
+          <div class="field-row">
+            <input id="master-key" type="password" autocomplete="off" spellcheck="false" autocapitalize="off">
+            <button type="button" class="btn btn-small" id="btn-show-key" aria-pressed="false">Show</button>
+          </div>
+          <p class="small err-text" id="gate-msg" role="alert"></p>
+          <p class="small muted" id="caps-warn" hidden>Caps Lock is on.</p>
+        </div>
+        <button type="button" class="btn btn-primary" id="btn-unlock">Unlock vault</button>
+        <p class="small muted" id="gate-kdf"></p>
+        <p class="small muted mono" id="gate-hint"></p>
+      </div>
+    </section>
+
+    <main id="app">
+      <noscript>
+        <p class="notice">This demo needs JavaScript.</p>
+      </noscript>
+      <p id="notice" class="notice" role="status" aria-live="polite" hidden></p>
+
+      <section class="intro">
+        <h1>See what happens when you share a login once</h1>
+        <p>Follow the same one-time link across three views: your vault, your friend’s browser, and someone who copied
+          the link.</p>
+      </section>
+
+      <section class="columns" aria-label="Three views of the same link">
+        <article class="card">
+          <header class="card-head">
+            <div><span class="eyebrow">Vault owner</span>
+              <h2>You</h2>
+            </div>
+            <span class="badge badge-neutral" id="owner-badge" role="status">No active link</span>
+          </header>
+          <div class="panel">
+            <div class="row"><strong>CinemaStream Family</strong><span class="small muted" id="owner-key">Vault key
+                current</span></div>
+            <div class="row"><span class="muted">family@household.org</span><span class="mono muted">••••••••••••</span>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="row"><span class="eyebrow">One-time link</span><span class="mono accent"
+                id="owner-countdown">Not issued</span></div>
+            <div class="linkbox">
+              <span class="mono ellipsis" id="owner-link">No link yet</span>
+              <button type="button" class="btn btn-small" id="btn-copy" disabled>Copy</button>
+            </div>
+            <p class="small muted" id="copy-status" aria-live="polite"></p>
+            <p class="helper" id="owner-helper" aria-live="polite"></p>
+          </div>
+          <footer class="card-foot"><button type="button" class="btn btn-primary" id="btn-owner">Create one-time
+              link</button></footer>
+        </article>
+
+        <article class="card">
+          <header class="card-head">
+            <div><span class="eyebrow">Invited guest</span>
+              <h2>Your friend</h2>
+            </div>
+            <span class="badge badge-neutral" id="friend-badge" role="status">Waiting for link</span>
+          </header>
+          <div class="panel">
+            <div class="row"><strong>CinemaStream Family</strong></div>
+            <p class="helper" id="friend-helper" aria-live="polite"></p>
+            <div class="row session-row" id="friend-session" hidden>
+              <span class="small muted">Read-only guest session</span>
+              <span class="mono accent" id="friend-timer">00:00 left</span>
+            </div>
+          </div>
+          <footer class="card-foot"><button type="button" class="btn btn-primary" id="btn-friend" disabled>Waiting for
+              link</button></footer>
+        </article>
+
+        <article class="card">
+          <header class="card-head">
+            <div><span class="eyebrow">Forwarded link</span>
+              <h2>Someone who copied it</h2>
+            </div>
+            <span class="badge badge-neutral" id="copier-badge" role="status">No link yet</span>
+          </header>
+          <div class="panel">
+            <span class="mono muted ellipsis" id="copier-link">No link yet</span>
+            <p class="helper" id="copier-helper" aria-live="polite"></p>
+          </div>
+          <footer class="card-foot"><button type="button" class="btn btn-secondary" id="btn-copier" disabled>Try copied
+              link</button></footer>
+        </article>
+      </section>
+
+      <section class="timeline" aria-label="Four-step timeline">
+        <div class="row wrap">
+          <h2>How this link moves through KeyFort</h2>
+          <span class="small muted" id="timeline-status" aria-live="polite">Ready · Create a link to begin</span>
+        </div>
+        <ol class="steps">
+          <li class="step" id="step-1">
+            <div class="step-head"><span class="mark" id="step-1-mark">1</span><strong>Link created</strong></div>
+            <p class="small muted">Single-use link issued with a 10-minute countdown.</p>
+          </li>
+          <li class="step" id="step-2">
+            <div class="step-head"><span class="mark" id="step-2-mark">2</span><strong>Signed in once</strong></div>
+            <p class="small muted">Friend opens the site; link is marked already used.</p>
+          </li>
+          <li class="step" id="step-3">
+            <div class="step-head"><span class="mark" id="step-3-mark">3</span><strong>Copied link refused</strong>
+            </div>
+            <p class="small muted">Every later attempt with the copied link is blocked.</p>
+          </li>
+          <li class="step" id="step-4">
+            <div class="step-head"><span class="mark" id="step-4-mark">4</span><strong>Vault key renewed</strong></div>
+            <p class="small muted">Owner’s vault is flagged and renewed at next unlock.</p>
+          </li>
+        </ol>
+      </section>
+
+      <section class="safe" aria-label="How it stays safe">
+        <h2>How it stays safe</h2>
+        <div class="safe-grid">
+          <article class="safe-item">
+            <h3>Your password is locked on your device</h3>
+            <p class="small muted">Passwords are sealed on your device before they are sent. The server only stores the
+              sealed version.</p>
+            <p class="live mono" id="safe-1-live" aria-live="polite">Vault key</p>
+            <details>
+              <summary>Show the details</summary>
+              <p class="small muted" id="safe-1-more">Loading…</p>
+            </details>
+          </article>
+          <article class="safe-item">
+            <h3>The link is a one-time secret we don’t keep</h3>
+            <p class="small muted">KeyFort keeps only a fingerprint of the link, so a stolen database can’t rebuild it.
+            </p>
+            <p class="live mono" id="safe-2-live" aria-live="polite">No link yet</p>
+            <details>
+              <summary>Show the details</summary>
+              <p class="small muted" id="safe-2-more">Loading…</p>
+            </details>
+          </article>
+          <article class="safe-item">
+            <h3>The site proves it was really the site</h3>
+            <p class="small muted">The site signs its login message. KeyFort refuses anything unsigned, altered or
+              replayed.</p>
+            <p class="live mono" id="safe-3-live" aria-live="polite">Waiting for the site</p>
+            <details>
+              <summary>Show the details</summary>
+              <p class="small muted" id="safe-3-more">Loading…</p>
+            </details>
+          </article>
+          <article class="safe-item">
+            <h3>History can’t be quietly changed</h3>
+            <p class="small muted">Each entry carries a fingerprint of the one before it, so any edit breaks the chain.
+            </p>
+            <p class="live mono" id="safe-4-live" aria-live="polite">Latest fingerprint</p>
+            <div class="row wrap">
+              <button type="button" class="btn btn-small" id="btn-history">Check history</button>
+              <span class="small" id="history-result" aria-live="polite"></span>
+            </div>
+            <details>
+              <summary>Show the details</summary>
+              <p class="small muted" id="safe-4-more">Loading…</p>
+            </details>
+          </article>
+          <article class="safe-item">
+            <h3>A fresh key after every use</h3>
+            <p class="small muted">Once a link is used, your vault key is renewed the next time you unlock it.</p>
+            <p class="live mono" id="safe-5-live" aria-live="polite">Key is current</p>
+            <details>
+              <summary>Show the details</summary>
+              <p class="small muted" id="safe-5-more">Loading…</p>
+            </details>
+          </article>
+        </div>
+      </section>
+
+      <section class="lower">
+        <div class="card wide">
+          <div class="row wrap">
+            <h2>Tamper-evident history</h2><span class="small muted">Most recent first</span>
+          </div>
+          <ul class="history" id="history-list"></ul>
+        </div>
+        <aside class="card limits">
+          <h2>Honest limits</h2>
+          <ul class="small muted">
+            <li>In this demo, a demo runner on this laptop plays your device, so the master key is checked here. In the
+              real app it is checked on your device and never sent to the server.</li>
+            <li>Someone can still film the screen during the one allowed session.</li>
+            <li>A friend can act inside the live session until you end it.</li>
+            <li>First use wins: if a copier uses the link first, your friend is refused.</li>
+            <li>Sites without a connector get an assisted mode, not a one-time login.</li>
+            <li>The server can see site names and usernames, never passwords.</li>
+          </ul>
+        </aside>
+      </section>
+      <pre id="debug" class="debug" hidden></pre>
+    </main>
+  </div>
+  <script src="/js/app.js"></script>
+</body>
+
+</html>

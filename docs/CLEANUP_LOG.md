@@ -13,4 +13,3 @@ This log records every structural restructuring, file relocation, and deletion p
 | 2026-11-24 | Delete | `scripts/OPEN_DEMO.bat`, `scripts/SHARE_TO_PHONE.bat` | - | Superseded by standard `RUN_DEMO` launchers. | Green (100/100) |
 | 2026-11-24 | Delete | `scripts/START_KEYFORT.bat`, `scripts/START_KEYFORT.ps1` | - | Superseded by `RUN_DEMO` launchers; zero external references. | Green (100/100) |
 | 2026-11-24 | Delete | `preview.html` | - | Removing obsolete standalone simulation prototype per Section B2. | Green (100/100) |
-| 2026-11-24 | Delete | `web/sw.js`, `web/app.js`, `web/index.html`, `web/style.css` | - | Removed placeholder web files per instructions; web assets managed separately. | Green (100/100) |

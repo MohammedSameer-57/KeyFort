@@ -24,6 +24,17 @@ To maintain clarity for non-technical users and avoid intimidating jargon, all u
   - Tagline: `Let someone in once, without giving away the key`
   - Cooperating site badge: `CinemaStream Family · Cooperating site`
   - Reset action: `Start over`
+  - Lock action: `Lock vault`
+
+- **Master Key Unlock Gate**:
+  - Heading: `Unlock your vault`
+  - Description: `Enter your master key to open the vault. Without it, nothing inside can be read.`
+  - Input label: `Master key`
+  - Action button: `Unlock vault`
+  - Show/Hide button: `Show` / `Hide`
+  - Incorrect key error: `That master key did not open the vault. Try again.`
+  - Rate limit lockout: `Too many tries. Wait a moment, then try again.`
+  - Demo hint label: `Demo vault · demo master key: {hint}`
 
 - **Introduction**:
   - Heading: `See what happens when you share a login once`

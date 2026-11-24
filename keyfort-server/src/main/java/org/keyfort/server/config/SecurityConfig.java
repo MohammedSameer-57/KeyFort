@@ -77,6 +77,8 @@ public class SecurityConfig {
                                 "/g/**",
                                 "/favicon.ico",
                                 "/static/**",
+                                "/css/**",
+                                "/js/**",
                                 "/*.css",
                                 "/*.js",
                                 "/*.woff2",

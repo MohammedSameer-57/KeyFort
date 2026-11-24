@@ -2,6 +2,7 @@ package org.keyfort.server.orchestration.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
+import org.keyfort.core.AuthException;
 import org.keyfort.core.Crypto;
 import org.keyfort.core.Vault;
 import org.keyfort.core.connector.HmacSigner;
@@ -29,6 +30,7 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -52,6 +54,12 @@ public class DemoRunnerService {
     public static final String DEMO_ENTRY_ID = "demo-entry-cinemastream";
     public static final String DEMO_SITE = "CinemaStream Family";
     public static final String DEMO_USERNAME = "family@household.org";
+    public static final String DEMO_MASTER_KEY = "demo-vault-master-pass";
+
+    private Vault inMemoryVault = null;
+    private Vault.Session activeVaultSession = null;
+    private int failedUnlockAttempts = 0;
+    private Instant lockoutUntil = null;
 
     private final GuestPassOrchestrationService orchestrationService;
     private final GuestPassRepository guestPassRepository;
@@ -61,6 +69,7 @@ public class DemoRunnerService {
     private final LedgerBlockRepository ledgerBlockRepository;
     private final ObjectMapper objectMapper;
     private final String connectorSecret;
+    private final String publicBaseUrl;
 
     // In-memory demo workflow state
     private String phase = "idle"; // "idle" | "link_ready" | "signed_in" | "ended" | "renewed"
@@ -88,7 +97,8 @@ public class DemoRunnerService {
             LedgerService ledgerService,
             LedgerBlockRepository ledgerBlockRepository,
             ObjectMapper objectMapper,
-            @Value("${keyfort.connector.secret:demo-connector-shared-secret-key-32b!!}") String connectorSecret
+            @Value("${keyfort.connector.secret:demo-connector-shared-secret-key-32b!!}") String connectorSecret,
+            @Value("${keyfort.public-base-url:http://localhost:8080}") String publicBaseUrl
     ) {
         this.orchestrationService = orchestrationService;
         this.guestPassRepository = guestPassRepository;
@@ -99,6 +109,7 @@ public class DemoRunnerService {
         this.objectMapper = objectMapper;
         this.connectorSecret = (connectorSecret != null && !connectorSecret.isBlank())
                 ? connectorSecret : "demo-connector-shared-secret-key-32b!!";
+        this.publicBaseUrl = publicBaseUrl != null ? publicBaseUrl : "http://localhost:8080";
     }
 
     @PostConstruct
@@ -106,11 +117,21 @@ public class DemoRunnerService {
         reset();
     }
 
+    public synchronized boolean isUnlocked() {
+        return activeVaultSession != null && !activeVaultSession.isClosed();
+    }
+
+    private void checkUnlocked() {
+        if (!isUnlocked()) {
+            throw new VaultLockedException();
+        }
+    }
+
     public synchronized DemoStateDto getState() {
         String latestHash = getLatestLedgerPrefix();
         return new DemoStateDto(
                 phase,
-                activeRawToken != null ? "/g/" + activeRawToken : "",
+                activeRawToken != null ? publicBaseUrl + "/g/" + activeRawToken : "",
                 tokenFingerprint,
                 vaultKeyVersion,
                 rotationPending,
@@ -122,13 +143,86 @@ public class DemoRunnerService {
                 signatureVerified,
                 replaysRefusedCount,
                 latestHash,
-                new ArrayList<>(logs)
+                new ArrayList<>(logs),
+                isUnlocked(),
+                DEMO_MASTER_KEY
         );
     }
 
+    public synchronized DemoStateDto unlock(String masterKey) {
+        Instant now = Instant.now();
+        if (lockoutUntil != null && now.isBefore(lockoutUntil)) {
+            throw new LockoutException();
+        }
+        if (masterKey == null) {
+            handleFailedUnlock();
+            throw new WrongKeyException();
+        }
+
+        char[] keyChars = masterKey.toCharArray();
+        try {
+            if (inMemoryVault == null) {
+                seedDatabase();
+            }
+            Vault.Session session = inMemoryVault.unlock(keyChars);
+            if (activeVaultSession != null && !activeVaultSession.isClosed()) {
+                activeVaultSession.close();
+            }
+            activeVaultSession = session;
+            failedUnlockAttempts = 0;
+            lockoutUntil = null;
+
+            if (inMemoryVault.keyVersion() > vaultKeyVersion) {
+                vaultKeyVersion = inMemoryVault.keyVersion();
+                rotationPending = false;
+                phase = "renewed";
+                vaultRepository.findById(DEMO_OWNER_ID).ifPresent(v -> {
+                    v.setKeyVersion(vaultKeyVersion);
+                    v.setRotationPending(false);
+                    vaultRepository.save(v);
+                });
+                addLog("Vault unlocked and key renewed on owner device");
+            } else {
+                addLog("Vault unlocked with master key");
+            }
+            broadcast();
+            return getState();
+        } catch (AuthException | GeneralSecurityException e) {
+            handleFailedUnlock();
+            throw new WrongKeyException();
+        } finally {
+            Crypto.wipe(keyChars);
+        }
+    }
+
+    private void handleFailedUnlock() {
+        failedUnlockAttempts++;
+        if (failedUnlockAttempts >= 5) {
+            lockoutUntil = Instant.now().plusSeconds(30);
+            throw new LockoutException();
+        }
+    }
+
+    public synchronized DemoStateDto lock() {
+        if (activeVaultSession != null) {
+            activeVaultSession.close();
+            activeVaultSession = null;
+        }
+        addLog("Vault locked (session keys wiped from memory)");
+        broadcast();
+        return getState();
+    }
+
     public synchronized DemoStateDto createLink(int durationMinutes) {
+        checkUnlocked();
         if (!"idle".equals(phase) && !"renewed".equals(phase)) {
-            reset();
+            activePassId = null;
+            activeRawToken = null;
+            tokenFingerprint = "--------";
+            sessionActive = false;
+            copierBlocked = false;
+            copierUsedFirst = false;
+            signatureVerified = false;
         }
 
         Duration ttl = Duration.ofMinutes(durationMinutes > 0 ? durationMinutes : 10);
@@ -152,6 +246,7 @@ public class DemoRunnerService {
     }
 
     public synchronized DemoStateDto friendLogin() {
+        checkUnlocked();
         if (copierUsedFirst) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "First use wins. If this happens, end the session.");
         }
@@ -172,6 +267,13 @@ public class DemoRunnerService {
         sessionSeconds = 899;
         rotationPending = true;
         signatureVerified = true;
+        if (inMemoryVault != null) {
+            inMemoryVault.setRotationPending(true);
+        }
+        vaultRepository.findById(DEMO_OWNER_ID).ifPresent(v -> {
+            v.setRotationPending(true);
+            vaultRepository.save(v);
+        });
 
         addLog("Friend signed in once; link marked already used");
         broadcast();
@@ -179,6 +281,7 @@ public class DemoRunnerService {
     }
 
     public synchronized DemoStateDto copierTry() {
+        checkUnlocked();
         if ("link_ready".equals(phase)) {
             // Copier acts before friend!
             copierUsedFirst = true;
@@ -195,6 +298,13 @@ public class DemoRunnerService {
             sessionSeconds = 899;
             rotationPending = true;
             signatureVerified = true;
+            if (inMemoryVault != null) {
+                inMemoryVault.setRotationPending(true);
+            }
+            vaultRepository.findById(DEMO_OWNER_ID).ifPresent(v -> {
+                v.setRotationPending(true);
+                vaultRepository.save(v);
+            });
 
             addLog("Copier used link first; original friend will be refused");
             broadcast();
@@ -209,6 +319,7 @@ public class DemoRunnerService {
     }
 
     public synchronized DemoStateDto endSession() {
+        checkUnlocked();
         if (activePassId != null) {
             try {
                 orchestrationService.endSession(DEMO_OWNER_ID, activePassId);
@@ -224,15 +335,27 @@ public class DemoRunnerService {
     }
 
     public synchronized DemoStateDto renewKey() {
+        checkUnlocked();
+        if (activeVaultSession != null) {
+            try {
+                activeVaultSession.rotateKeys();
+            } catch (Exception e) {
+                log.error("Rotation error in active session: {}", e.getMessage());
+            }
+        }
+        if (inMemoryVault != null) {
+            vaultKeyVersion = inMemoryVault.keyVersion();
+        } else {
+            vaultKeyVersion = 2;
+        }
+        rotationPending = false;
+        phase = "renewed";
+
         vaultRepository.findById(DEMO_OWNER_ID).ifPresent(v -> {
-            v.setKeyVersion(2);
+            v.setKeyVersion(vaultKeyVersion);
             v.setRotationPending(false);
             vaultRepository.save(v);
         });
-
-        vaultKeyVersion = 2;
-        rotationPending = false;
-        phase = "renewed";
 
         addLog("Vault key renewed on owner device at unlock");
         broadcast();
@@ -240,6 +363,13 @@ public class DemoRunnerService {
     }
 
     public synchronized DemoStateDto reset() {
+        if (activeVaultSession != null) {
+            activeVaultSession.close();
+            activeVaultSession = null;
+        }
+        failedUnlockAttempts = 0;
+        lockoutUntil = null;
+
         phase = "idle";
         activePassId = null;
         activeRawToken = null;
@@ -340,7 +470,7 @@ public class DemoRunnerService {
         }
     }
 
-    private void seedDatabase() throws Exception {
+    private void seedDatabase() throws GeneralSecurityException, AuthException {
         // Clear previous demo guest passes
         List<GuestPassEntity> passes = guestPassRepository.findAll();
         for (GuestPassEntity p : passes) {
@@ -350,17 +480,21 @@ public class DemoRunnerService {
         }
 
         // Seed demo vault
-        char[] masterSecret = "demo-vault-master-pass".toCharArray();
+        char[] masterSecret = DEMO_MASTER_KEY.toCharArray();
         Vault.Created created = Vault.create(DEMO_OWNER_ID, masterSecret);
-        Vault v = created.vault();
+        inMemoryVault = created.vault();
+        try (Vault.Session initSession = inMemoryVault.unlock(masterSecret)) {
+            initSession.add(DEMO_SITE, DEMO_USERNAME, "DemoCinemaStreamPass2026!");
+        }
+        Crypto.wipe(masterSecret);
 
         VaultEntity vaultEntity = new VaultEntity(
                 DEMO_OWNER_ID,
-                v.iterations(),
-                v.recoveryPub().getEncoded(),
-                v.kdfSalt(),
-                v.wrappedDek(),
-                v.recoveryWrappedDek(),
+                inMemoryVault.iterations(),
+                inMemoryVault.recoveryPub().getEncoded(),
+                inMemoryVault.kdfSalt(),
+                inMemoryVault.wrappedDek(),
+                inMemoryVault.recoveryWrappedDek(),
                 1,
                 false,
                 Instant.now()
@@ -378,5 +512,17 @@ public class DemoRunnerService {
                 Instant.now()
         );
         entryRepository.save(entryEntity);
+    }
+
+    public static class VaultLockedException extends RuntimeException {
+        public VaultLockedException() { super("vault locked"); }
+    }
+
+    public static class WrongKeyException extends RuntimeException {
+        public WrongKeyException() { super("wrong key"); }
+    }
+
+    public static class LockoutException extends RuntimeException {
+        public LockoutException() { super("locked out"); }
     }
 }
