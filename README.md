@@ -1,8 +1,6 @@
 # KeyFort
 
-KeyFort is a credential vault featuring broker-assisted ephemeral guest passes, client-side encrypted passwords, and post-login key rotation.
-
-The server can see site names and usernames (site names are required to route requests to the appropriate connector SPI), but never has access to plaintext passwords or vault encryption keys. KeyFort does not claim full zero-knowledge confidentiality over metadata.
+KeyFort is a credential vault featuring broker-assisted ephemeral guest passes, target site connectors, and automatic post-login key rotation. The server can see site names and usernames, never passwords. KeyFort does not claim full zero-knowledge: site names stay readable so the server can select the appropriate site connector, and username encryption is planned as future work. Master secrets and entry passwords remain strictly client-side and encrypted under keys the server never holds.
 
 ## System Architecture
 
