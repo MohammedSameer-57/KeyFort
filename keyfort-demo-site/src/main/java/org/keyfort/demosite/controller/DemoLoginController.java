@@ -161,7 +161,7 @@ public class DemoLoginController {
         }
     }
 
-    @GetMapping(value = "/login", produces = MediaType.TEXT_HTML_VALUE)
+    @GetMapping(value = {"/", "/login"}, produces = MediaType.TEXT_HTML_VALUE)
     @ResponseBody
     public ResponseEntity<String> loginPage(
             @RequestParam(name = "error", required = false) String error,

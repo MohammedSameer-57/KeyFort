@@ -1,0 +1,4 @@
+keyfort:
+  connector:
+    secret: ${KEYFORT_CONNECTOR_SECRET:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
+    webhook-url: ${KEYFORT_CONNECTOR_WEBHOOK_URL:http://localhost:8080/api/connector/events}

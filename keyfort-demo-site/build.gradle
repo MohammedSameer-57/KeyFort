@@ -19,6 +19,10 @@ application {
     mainClass = 'org.keyfort.demosite.DemoSiteApplication'
 }
 
+tasks.withType(JavaExec).configureEach {
+    environment System.getenv()
+}
+
 dependencies {
     implementation project(':keyfort-core')
 
