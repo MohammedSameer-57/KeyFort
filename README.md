@@ -57,7 +57,7 @@ Quick test run:
 ./gradlew test
 ```
 
-Architectural decisions and trade-offs are logged in [docs/DECISIONS.md](docs/DECISIONS.md).
+Architectural decisions and trade-offs are logged in [docs/DECISIONS.md](docs/DECISIONS.md). Technical deep-dive and viva preparation questions are available in [docs/EXPLAINER.md](docs/EXPLAINER.md), live presentation guidance in [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md), and final verification proofs in [docs/FINAL_REPORT.md](docs/FINAL_REPORT.md).
 
 ## License
 
