@@ -66,3 +66,26 @@ To test with a physical Android device connected via USB:
    ```cmd
    scrcpy
    ```
+
+---
+
+## Port Conflicts & Troubleshooting
+
+If port `8080` (KeyFort Server) or `9090` (Demo Site) is in use by another process:
+
+### 1. Identify Conflicting Processes
+```powershell
+Get-NetTCPConnection -LocalPort 8080,9090 -State Listen -ErrorAction SilentlyContinue | Select-Object LocalPort, OwningProcess
+```
+
+### 2. Terminate Conflicting Processes (One-Liner)
+```powershell
+Get-NetTCPConnection -LocalPort 8080,9090 -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }
+```
+
+### 3. Clean Stopped Processes
+If background Java processes linger after testing:
+```powershell
+Get-Process -Name java -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle -eq "" } | Stop-Process -Force
+```
+
