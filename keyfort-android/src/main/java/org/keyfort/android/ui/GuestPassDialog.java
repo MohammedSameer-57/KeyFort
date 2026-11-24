@@ -110,14 +110,23 @@ public class GuestPassDialog extends DialogFragment {
     private void createGuestPass(String entryId) {
         AppSession session = KeyFortApp.getInstance().getAppSession();
         String token = session.getJwtToken();
+        if (token == null || token.isEmpty()) {
+            token = org.keyfort.android.security.SecurePrefs.getInstance(requireContext()).getToken();
+        }
+        final String authToken = token;
         int ttl = getSelectedDurationSeconds();
 
         executor.execute(() -> {
             try {
-                String respJson = ApiClient.getInstance().createGuestPass(token, entryId, ttl);
+                String respJson = ApiClient.getInstance().createGuestPass(authToken, entryId, ttl);
                 JsonObject json = JsonParser.parseString(respJson).getAsJsonObject();
-                passId = json.get("id").getAsString();
-                String rawToken = json.get("rawToken").getAsString();
+                passId = json.has("id") ? json.get("id").getAsString() : "";
+                String rawToken = "";
+                if (json.has("token") && !json.get("token").isJsonNull()) {
+                    rawToken = json.get("token").getAsString();
+                } else if (json.has("rawToken") && !json.get("rawToken").isJsonNull()) {
+                    rawToken = json.get("rawToken").getAsString();
+                }
                 fullLink = GuestPassStateResolver.buildRedeemUrl(ApiClient.getInstance().getBaseUrl(), rawToken);
 
                 requireActivity().runOnUiThread(() -> {
@@ -172,7 +181,7 @@ public class GuestPassDialog extends DialogFragment {
                     try {
                         String respJson = ApiClient.getInstance().getGuestPass(token, passId);
                         JsonObject json = JsonParser.parseString(respJson).getAsJsonObject();
-                        String state = json.get("state").getAsString();
+                        String state = json.has("state") && !json.get("state").isJsonNull() ? json.get("state").getAsString() : "";
                         boolean hasSession = json.has("hasSession") && json.get("hasSession").getAsBoolean();
 
                         requireActivity().runOnUiThread(() -> {
