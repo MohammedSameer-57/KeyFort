@@ -259,6 +259,20 @@ public class GuestPassOrchestrationService {
     }
 
     @Transactional(readOnly = true)
+    public GuestPassEntity getPassStatus(String ownerUserId, String passId) {
+        Objects.requireNonNull(ownerUserId, "ownerUserId must not be null");
+        Objects.requireNonNull(passId, "passId must not be null");
+
+        GuestPassEntity entity = repository.findById(passId)
+                .orElseThrow(() -> new GuestPassNotFoundException("Guest pass not found: " + passId));
+
+        if (entity.getOwnerUserId() != null && !ownerUserId.equals(entity.getOwnerUserId())) {
+            throw new GuestPassNotFoundException("Guest pass not found: " + passId);
+        }
+        return entity;
+    }
+
+    @Transactional(readOnly = true)
     public org.keyfort.core.connector.GuestSessionInfo getSessionStatus(String ownerUserId, String passId) {
         Objects.requireNonNull(ownerUserId, "ownerUserId must not be null");
         Objects.requireNonNull(passId, "passId must not be null");

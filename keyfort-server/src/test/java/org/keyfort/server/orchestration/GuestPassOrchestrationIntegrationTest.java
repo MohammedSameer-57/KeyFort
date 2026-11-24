@@ -816,4 +816,45 @@ class GuestPassOrchestrationIntegrationTest {
                         .header("Authorization", "Bearer " + userJwtToken))
                 .andExpect(status().isNotFound());
     }
+
+    @Test
+    @DisplayName("Guest pass query and session termination via DELETE return accurate state and enforce ownership")
+    void testGuestPassQueryAndSessionDelete() throws Exception {
+        CreateGuestPassRequest createReq = new CreateGuestPassRequest("entry-1", "read-only", 900);
+        MvcResult createRes = mockMvc.perform(post("/api/guest-passes")
+                        .header("Authorization", "Bearer " + userJwtToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createReq)))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        CreateGuestPassResponse createResp = objectMapper.readValue(createRes.getResponse().getContentAsString(), CreateGuestPassResponse.class);
+        String passId = createResp.id();
+
+        // 1. Query guest pass status returns ISSUED and hasSession = false
+        mockMvc.perform(get("/api/guest-passes/" + passId)
+                        .header("Authorization", "Bearer " + userJwtToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(passId))
+                .andExpect(jsonPath("$.state").value("ISSUED"))
+                .andExpect(jsonPath("$.hasSession").value(false));
+
+        // 2. Querying with another user token returns 404
+        DeviceVerificationRequest otherReq = new DeviceVerificationRequest("bob-other", "phone-bob", "123456");
+        MvcResult otherAuth = mockMvc.perform(post("/auth/device/verify")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(otherReq)))
+                .andExpect(status().isOk())
+                .andReturn();
+        String otherUserToken = objectMapper.readValue(otherAuth.getResponse().getContentAsString(), AuthResponse.class).token();
+
+        mockMvc.perform(get("/api/guest-passes/" + passId)
+                        .header("Authorization", "Bearer " + otherUserToken))
+                .andExpect(status().isNotFound());
+
+        // 3. DELETE /session before session exists returns 404
+        mockMvc.perform(delete("/api/guest-passes/" + passId + "/session")
+                        .header("Authorization", "Bearer " + userJwtToken))
+                .andExpect(status().isNotFound());
+    }
 }

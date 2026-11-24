@@ -99,4 +99,24 @@
     <string name="synced">Synced successfully</string>
     <string name="error_prefix">Error: </string>
     <string name="send_coming_soon">Send</string>
+
+    <!-- Guest Pass Flow -->
+    <string name="create_guest_pass">Create guest pass</string>
+    <string name="guest_pass_title">Create Guest Pass</string>
+    <string name="duration_title">Duration</string>
+    <string name="duration_5m">5 minutes</string>
+    <string name="duration_15m">15 minutes</string>
+    <string name="duration_1h">1 hour</string>
+    <string name="generate_link">Generate Link</string>
+    <string name="link_ready">Link ready</string>
+    <string name="share_link">Share link</string>
+    <string name="copy_link">Copy link</string>
+    <string name="status_waiting">Waiting for friend</string>
+    <string name="status_active">Friend logged in</string>
+    <string name="status_used">Link used</string>
+    <string name="status_expired">Expired</string>
+    <string name="end_session_now">End session now</string>
+    <string name="session_ended">Session ended</string>
+    <string name="key_renewed">Key renewed for %s</string>
+    <string name="demo_login">Demo Login</string>
 </resources>
