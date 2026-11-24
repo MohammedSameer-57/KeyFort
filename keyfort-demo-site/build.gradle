@@ -23,6 +23,13 @@ tasks.withType(JavaExec).configureEach {
     environment System.getenv()
 }
 
+tasks.named('startScripts') {
+    doLast {
+        def winScript = windowsScript
+        winScript.text = winScript.text.replaceAll('set CLASSPATH=.*', 'set CLASSPATH=%APP_HOME%\\\\lib\\\\*')
+    }
+}
+
 dependencies {
     implementation project(':keyfort-core')
 
