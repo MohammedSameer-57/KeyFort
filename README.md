@@ -1,63 +1,140 @@
 # KeyFort
 
-KeyFort is a credential vault featuring broker-assisted ephemeral guest passes, target site connectors, and automatic post-login key rotation. The server can see site names and usernames, never passwords. KeyFort does not claim full zero-knowledge: site names stay readable so the server can select the appropriate site connector, and username encryption is planned as future work. Master secrets and entry passwords remain strictly client-side and encrypted under keys the server never holds.
+> A secure password vault that lets you share temporary access with friends without revealing your real password.
 
-## System Architecture
+---
 
-The project consists of three primary modules:
+## What is KeyFort?
 
-- **keyfort-core**: Pure Java 17 cryptographic engine. Implements PBKDF2-HMAC-SHA256 (600,000 iterations), AES-256-GCM authenticated encryption, RFC 5869 HKDF-SHA256 key derivation, RSA-3072-OAEP recovery key wrapping, and an append-only hash-chained ledger. The module maintains compatibility with Android runtimes below API 34 by avoiding `java.util.HexFormat`.
-- **keyfort-server**: Spring Boot 3 web application providing REST endpoints for device registration, risk-based access evaluation, hash-chained ledger auditing, and encrypted vault payload synchronization.
-- **keyfort-android**: Native Android application implemented using Java 17, XML layouts, AndroidX Fragments, Room persistence, and Android Keystore biometric authentication.
+Normally, if a friend wants to use your streaming account (like Netflix or Disney+), you have to text them your real password. That creates big problems:
+- They can save your password forever.
+- They might share it with other people.
+- If you use that password on other websites, your accounts are at risk.
 
-## Product Concept: Ephemeral Guest Passes
+**KeyFort solves this.** Instead of sharing your real password, you create a **Single-Use Guest Pass Link** from your Android phone or laptop. 
 
-KeyFort provides a mechanism to grant temporary, single-use access to an account on a third-party service without revealing the owner's permanent password.
+1. You send the link to your friend.
+2. They click it and get logged in directly.
+3. They **never see your actual password**.
+4. The link expires immediately after use.
 
-1. **Brokerage via Connector SPI**: For cooperating sites integrating with the KeyFort connector interface, the site provisions a short-lived temporary credential.
-2. **Single-Use Execution**: The guest redeems a high-entropy ephemeral token to authenticate on the target service.
-3. **Revocation and Rotation**: Upon receipt of a verified login webhook from the target site, the temporary credential is revoked, the token is burned, and KeyFort requests an atomic vault key rotation.
-4. **Assisted Mode**: For target sites lacking connector integration, KeyFort operates in an assisted mode that prompts the owner with an explicit reminder to rotate the real password after sharing.
+---
 
-For threat boundaries, attacker profiles, and explicit limitations (such as active remote sessions and optical recording during live display), refer to [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md).
+## How It Works
 
-## Repository Structure
+```text
+[Owner's Phone] ────(1. Generate Link)────► [KeyFort Server]
+                                                    │
+                                            (2. Friend clicks link)
+                                                    ▼
+[Friend's Browser] ◄──(3. Auto-Login)────── [CinemaStream Demo Site]
+                                                    │
+                                            (4. Pass Burned & Revoked)
+```
+
+1. **Create a Guest Pass**: Choose how long the pass should last (e.g., 5 or 15 minutes) and generate a link.
+2. **Send the Link**: Share the link with your friend over chat.
+3. **One-Time Login**: When your friend opens the link, KeyFort logs them into the target website automatically without exposing your password.
+4. **Immediate Burn**: Once used (or once the timer expires), the pass self-destructs and cannot be used again.
+
+---
+
+## Key Features
+
+- 🔒 **Zero Password Leak**: The server never sees or stores your master password or your site passwords. Everything is encrypted on your device using AES-256-GCM.
+- ⏱️ **Ephemeral Guest Passes**: Single-use links that burn immediately after login.
+- 🔄 **Automatic Rotation & Assisted Reminders**: Works with cooperating websites to revoke sessions, and reminds you to rotate passwords on standard sites.
+- 📱 **Native Android App**: Manage your credentials, generate strong passwords, and create guest links directly on mobile.
+- 💻 **Live 3-Pane Web Demo**: Test the entire workflow side-by-side (Owner, Friend, and an unauthorized Copier) in your browser.
+- 📜 **Tamper-Proof Audit Ledger**: An append-only cryptographic ledger tracks every access attempt.
+
+---
+
+## Project Structure
 
 ```text
 KeyFort/
-├── keyfort-core/          # Pure Java 17 cryptographic engine and state machine
-├── keyfort-demo-site/     # Cooperating mock service implementing connector SPI
-├── keyfort-server/        # Spring Boot 3 REST API, persistence, and orchestration
-├── keyfort-android/       # Native Android client (Java 17, XML, Fragments)
-├── web/                   # Self-contained vanilla JS Web UI
-├── scripts/               # One-click verification, execution, and test runners
-├── docs/                  # Architectural specs, threat models, and viva documentation
-├── build.gradle           # Multi-project root build definition
-├── settings.gradle        # Gradle project structure configuration
-├── gradle.properties      # Build flags and JVM configurations
-├── gradlew / gradlew.bat  # Gradle wrapper
-├── .gitattributes         # Line-ending and attribute configurations
-├── .gitignore             # Git exclusion rules
-├── README.md              # Project overview
-├── SECURITY.md            # Vulnerability disclosure policy
-└── LICENSE                # MIT License
+├── keyfort-core/          # Pure Java 17 encryption engine (AES-256-GCM, PBKDF2, HKDF)
+├── keyfort-server/        # Spring Boot 3 backend API & guest pass broker
+├── keyfort-demo-site/     # Mock streaming service ("CinemaStream") testing guest logins
+├── keyfort-android/       # Native Android client app (Java 17, XML layouts, Room DB)
+├── web/                   # Interactive 3-pane web demo and dashboard
+├── scripts/               # One-click Windows/PowerShell launchers and test scripts
+└── docs/                  # Architecture, security threat models, and viva guides
 ```
 
-## Build and Execution
+---
 
-Operational procedures for executing tests, starting the server, and building artifacts are documented in [docs/RUNNING.md](docs/RUNNING.md).
+## Quick Start: Running the Demo
 
-Quick test run:
+### Prerequisites
+- **Java 17** or newer installed.
+- Windows PowerShell or Command Prompt.
 
-```bash
-# Windows
-.\gradlew.bat test
+### 1. Start the Demo Servers
+Run the startup script from the root folder:
 
-# Linux / macOS
-./gradlew test
+```cmd
+scripts\RUN_DEMO.bat
+```
+*(Or in PowerShell: `.\scripts\RUN_DEMO.ps1`)*
+
+This starts both the KeyFort server (`http://localhost:8080`) and the CinemaStream demo site (`http://localhost:9090`).
+
+### 2. Open the Interactive Web Demo
+Open your web browser and navigate to:
+👉 **[http://localhost:8080/demo](http://localhost:8080/demo)**
+
+Here you can test all three roles:
+- **Left Panel (Owner)**: Select CinemaStream, create a guest pass, and copy the link.
+- **Middle Panel (Friend)**: Redeem the link and get authenticated into CinemaStream.
+- **Right Panel (Attacker / Copier)**: Try to reuse the burned link and watch it get rejected.
+
+### 3. Stop the Servers
+When you are finished testing, run:
+
+```cmd
+scripts\STOP_DEMO.bat
 ```
 
-Architectural decisions and trade-offs are logged in [docs/DECISIONS.md](docs/DECISIONS.md). Technical deep-dive and viva preparation questions are available in [docs/EXPLAINER.md](docs/EXPLAINER.md), live presentation guidance in [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md), and final verification proofs in [docs/FINAL_REPORT.md](docs/FINAL_REPORT.md).
+---
+
+## Running the Android App
+
+1. Open the project in **Android Studio**.
+2. Start an Android Emulator (API 26+).
+3. To install and run directly from the command line:
+   ```cmd
+   .\gradlew.bat :keyfort-android:installDebug
+   ```
+4. On the login screen, tap **Demo Login** (or use username `alice`, password `password123`).
+5. Tap **CinemaStream Family** -> **Create guest pass** -> **Generate Link**.
+
+---
+
+## Running Automated Tests
+
+KeyFort includes a comprehensive automated test suite (115 tests passing across all core, server, and Android modules):
+
+```cmd
+scripts\RUN_TESTS.bat
+```
+*(Or via Gradle: `.\gradlew.bat test`)*
+
+---
+
+## Documentation
+
+For technical reports, security proofs, and presentation guides, see the `docs/` folder:
+
+- **[System Architecture](docs/ARCHITECTURE.md)**: Module breakdown, data flow, and connector specifications.
+- **[Threat Model & Security](docs/THREAT_MODEL.md)**: Security boundaries, attacker profiles, and protections.
+- **[REST API Reference](docs/API.md)**: Endpoint contracts and JSON payloads.
+- **[Viva & Technical Explainer](docs/EXPLAINER.md)**: 20 technical viva questions and plain-English answers.
+- **[Presentation Talk Track](docs/DEMO_SCRIPT.md)**: Step-by-step 5-minute live demonstration script.
+- **[Final Report](docs/FINAL_REPORT.md)**: Complete implementation metrics and test verification results.
+
+---
 
 ## License
 

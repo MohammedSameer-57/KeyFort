@@ -7,6 +7,8 @@ keyfort-server/src/main/resources/static/
 !gradle/wrapper/gradle-wrapper.jar
 
 # Java / IDE
+bin/
+out/
 *.class
 *.jar
 *.war
