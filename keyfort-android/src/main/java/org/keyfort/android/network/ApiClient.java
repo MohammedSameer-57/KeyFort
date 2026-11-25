@@ -113,11 +113,38 @@ public class ApiClient {
         return execute(request);
     }
 
-    // ─── Ledger ─────────────────────────────────────────────────────────────
+    // ─── Ledger & Crypto Facts ──────────────────────────────────────────────
 
-    public String verifyLedger() throws IOException {
-        Request request = new Request.Builder()
+    public String verifyLedger(String token) throws IOException {
+        Request.Builder builder = new Request.Builder()
                 .url(baseUrl + "/ledger/verify")
+                .get();
+        if (token != null && !token.isEmpty()) {
+            builder.addHeader("Authorization", "Bearer " + token);
+        }
+        return execute(builder.build());
+    }
+
+    public String getLedgerBlocks(String token) throws IOException {
+        Request.Builder builder = new Request.Builder()
+                .url(baseUrl + "/ledger")
+                .get();
+        if (token != null && !token.isEmpty()) {
+            builder.addHeader("Authorization", "Bearer " + token);
+        }
+        return execute(builder.build());
+    }
+
+    public String getCryptoFacts() throws IOException {
+        return getCryptoFacts(baseUrl);
+    }
+
+    public String getCryptoFacts(String targetBaseUrl) throws IOException {
+        String cleanUrl = targetBaseUrl.endsWith("/")
+                ? targetBaseUrl.substring(0, targetBaseUrl.length() - 1)
+                : targetBaseUrl;
+        Request request = new Request.Builder()
+                .url(cleanUrl + "/api/crypto-facts")
                 .get()
                 .build();
         return execute(request);
