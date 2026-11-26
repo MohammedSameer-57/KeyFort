@@ -60,7 +60,8 @@ KeyFort/
 ├── keyfort-android/       # Native Android client app (Java 17, XML layouts, Room DB)
 ├── web/                   # Interactive 3-pane web demo and dashboard
 ├── scripts/               # One-click Windows/PowerShell launchers and test scripts
-└── docs/                  # Architecture, security threat models, and viva guides
+├── presentation/          # 12-slide presentation deck (.pptx and .pdf)
+└── docs/                  # Organized documentation (architecture, guides, design, reports)
 ```
 
 ---
@@ -123,16 +124,17 @@ scripts\RUN_TESTS.bat
 
 ---
 
-## Documentation
+## Documentation & Presentation
 
-For technical reports, security proofs, and presentation guides, see the `docs/` folder:
+For technical reports, security proofs, and presentation slides, see `docs/` and `presentation/`:
 
-- **[System Architecture](docs/ARCHITECTURE.md)**: Module breakdown, data flow, and connector specifications.
-- **[Threat Model & Security](docs/THREAT_MODEL.md)**: Security boundaries, attacker profiles, and protections.
-- **[REST API Reference](docs/API.md)**: Endpoint contracts and JSON payloads.
-- **[Viva & Technical Explainer](docs/EXPLAINER.md)**: 20 technical viva questions and plain-English answers.
-- **[Presentation Talk Track](docs/DEMO_SCRIPT.md)**: Step-by-step 5-minute live demonstration script.
-- **[Final Report](docs/FINAL_REPORT.md)**: Complete implementation metrics and test verification results.
+- **[Presentation Deck (PDF)](presentation/KeyFort_Presentation.pdf)** / **[PowerPoint](presentation/KeyFort_Presentation.pptx)**: 12-slide project overview and presenter deck.
+- **[System Architecture](docs/architecture/ARCHITECTURE.md)**: Module breakdown, data flow, and connector specifications.
+- **[Threat Model & Security](docs/architecture/THREAT_MODEL.md)**: Security boundaries, attacker profiles, and protections.
+- **[REST API Reference](docs/architecture/API.md)**: Endpoint contracts and JSON payloads.
+- **[Viva & Technical Explainer](docs/guides/EXPLAINER.md)**: 20 technical viva questions and plain-English answers.
+- **[Presentation Talk Track](docs/guides/DEMO_SCRIPT.md)**: Step-by-step 5-minute live demonstration script.
+- **[Final Report](docs/reports/FINAL_REPORT.md)**: Complete implementation metrics and test verification results.
 
 ---
 
